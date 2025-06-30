@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS subscription_history (
 
 ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own subscription history"
+CREATE POLICY IF NOT EXISTS "Users can read own subscription history"
   ON subscription_history
   FOR SELECT
   TO authenticated
