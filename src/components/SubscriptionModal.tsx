@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Crown, Check, Zap, Target, BarChart3, FileText, Star, ArrowRight, Clock, ArrowLeft } from 'lucide-react';
+import { Crown, Check, Zap, Target, BarChart3, FileText, Star, ArrowRight, Clock, ArrowLeft } from 'lucide-react';
 import { useSubscription } from '../context/SubscriptionContext';
 
 interface SubscriptionModalProps {
@@ -157,12 +157,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors p-1 hover:bg-green-500 rounded"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* X button removed to prevent users from closing the modal without clicking "Maybe Later" */}
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
