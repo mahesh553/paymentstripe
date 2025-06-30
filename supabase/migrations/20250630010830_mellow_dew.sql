@@ -124,7 +124,7 @@ BEGIN
     DROP POLICY IF EXISTS "Users can read own job matches" ON job_matches;
     DROP POLICY IF EXISTS "Users can insert own job matches" ON job_matches;
 
-    CREATE POLICY "Users can read own job matches"
+    CREATE POLICY IF NOT EXISTS "Users can read own job matches"
       ON job_matches
       FOR SELECT
       TO authenticated
