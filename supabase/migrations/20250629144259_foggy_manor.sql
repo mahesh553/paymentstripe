@@ -243,7 +243,7 @@ BEGIN
       ('job_matching', 0),
       ('keyword_analysis', 0),
       ('restructure_guide', 0)
-    ) AS f(feature, limit)
+    ) AS f(feature, "limit")
     LEFT JOIN usage_tracking ut ON ut.user_id = user_uuid 
       AND ut.feature_type = f.feature 
       AND ut.reset_date > now();
