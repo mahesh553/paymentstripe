@@ -75,7 +75,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const { data, error } = await supabase
-        .from('xxpj_users')
+        .from('users')
         .update(updates)
         .eq('id', user.id)
         .select()

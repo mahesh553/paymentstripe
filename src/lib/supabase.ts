@@ -40,10 +40,10 @@ export const getCurrentUser = async () => {
   return { user, error }
 }
 
-// Database helpers - Updated to use xxpj_ prefixed tables
+// Database helpers - Updated to use users table instead of xxpj_users
 export const createUserProfile = async (userId: string, profileData: any) => {
   const { data, error } = await supabase
-    .from('xxpj_users')
+    .from('users')
     .insert([
       {
         id: userId,
@@ -58,7 +58,7 @@ export const createUserProfile = async (userId: string, profileData: any) => {
 
 export const getUserProfile = async (userId: string) => {
   const { data, error } = await supabase
-    .from('xxpj_users')
+    .from('users')
     .select('*')
     .eq('id', userId)
     .single()
@@ -68,7 +68,7 @@ export const getUserProfile = async (userId: string) => {
 
 export const updateUserProfile = async (userId: string, updates: any) => {
   const { data, error } = await supabase
-    .from('xxpj_users')
+    .from('users')
     .update(updates)
     .eq('id', userId)
     .select()
@@ -93,15 +93,15 @@ export const uploadResume = async (file: File, userId: string) => {
 }
 
 export const createResumeRecord = async (resumeData: any) => {
-  // Ensure user exists in xxpj_users before creating resume record
+  // Ensure user exists in users table before creating resume record
   const { data: userExists, error: userError } = await supabase
-    .from('xxpj_users')
+    .from('users')
     .select('id')
     .eq('id', resumeData.user_id)
     .single()
 
   if (userError || !userExists) {
-    console.error('User not found in xxpj_users:', userError)
+    console.error('User not found in users table:', userError)
     return { 
       data: null, 
       error: new Error('User profile not found. Please ensure you are properly logged in.') 
