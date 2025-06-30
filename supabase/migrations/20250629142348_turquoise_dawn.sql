@@ -101,19 +101,19 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own usage"
+CREATE POLICY IF NOT EXISTS "Users can read own usage"
   ON usage_tracking
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own usage"
+CREATE POLICY IF NOT EXISTS "Users can insert own usage"
   ON usage_tracking
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own usage"
+CREATE POLICY IF NOT EXISTS "Users can update own usage"
   ON usage_tracking
   FOR UPDATE
   TO authenticated
