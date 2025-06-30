@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, FileText, Target, CheckCircle, Zap } from 'lucide-react';
 import { analyzeResume } from '../services/geminiService';
 
