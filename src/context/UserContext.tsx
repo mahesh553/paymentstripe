@@ -40,12 +40,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await getUserProfile(user.id);
       
       if (error && error.code === 'PGRST116') {
-        // User profile doesn't exist, create one
+        // User profile doesn't exist in xxpj_users, create one
+        console.log('Creating user profile for:', user.email);
         const newProfile = {
           id: user.id,
           email: user.email!,
           full_name: user.user_metadata?.full_name || null,
           avatar_url: user.user_metadata?.avatar_url || null,
+          is_admin: false,
+          subscription_tier: 'free',
+          email_verified: user.email_confirmed_at ? true : false,
+          onboarding_completed: false,
+          preferences: {},
+          timezone: 'UTC'
         };
         
         const { data: createdProfile, error: createError } = await createUserProfile(user.id, newProfile);
@@ -75,7 +82,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('xxpj_users')
         .update(updates)
         .eq('id', user.id)
         .select()

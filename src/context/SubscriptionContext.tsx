@@ -57,7 +57,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let statusData = null;
       try {
         const { data, error } = await supabase
-          .rpc('get_user_subscription_status');
+          .rpc('get_user_subscription_status', { user_uuid: user.id });
 
         if (error) {
           console.error('Error fetching subscription status:', error);
@@ -100,30 +100,15 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Add default limits for free users if no data returned
       if (Object.keys(limitsMap).length === 0) {
-        limitsMap['resume_analysis'] = {
-          limit: 1,
-          used: 0,
-          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          isUnlimited: false
-        };
-        limitsMap['job_matching'] = {
-          limit: 1,
-          used: 0,
-          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isUnlimited: false
-        };
-        limitsMap['keyword_analysis'] = {
-          limit: 1,
-          used: 0,
-          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isUnlimited: false
-        };
-        limitsMap['restructure_guide'] = {
-          limit: 1,
-          used: 0,
-          resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isUnlimited: false
-        };
+        const defaultResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        ['resume_analysis', 'job_matching', 'keyword_analysis', 'restructure_guide'].forEach(feature => {
+          limitsMap[feature] = {
+            limit: 1,
+            used: 0,
+            resetDate: defaultResetDate,
+            isUnlimited: false
+          };
+        });
       }
 
       // Legacy usage data for backward compatibility
@@ -146,38 +131,25 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Error in fetchSubscriptionStatus:', error);
       // Set default free tier subscription
+      const defaultResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const defaultLimits = {} as Record<string, { limit: number; used: number; resetDate: string; isUnlimited: boolean }>;
+      
+      ['resume_analysis', 'job_matching', 'keyword_analysis', 'restructure_guide'].forEach(feature => {
+        defaultLimits[feature] = {
+          limit: 1,
+          used: 0,
+          resetDate: defaultResetDate,
+          isUnlimited: false
+        };
+      });
+
       setSubscription({
         isPremium: false,
         isAdmin: false,
         planType: 'free',
         status: 'inactive',
         usageData: {},
-        limitsData: {
-          'resume_analysis': {
-            limit: 1,
-            used: 0,
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            isUnlimited: false
-          },
-          'job_matching': {
-            limit: 1,
-            used: 0,
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            isUnlimited: false
-          },
-          'keyword_analysis': {
-            limit: 1,
-            used: 0,
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            isUnlimited: false
-          },
-          'restructure_guide': {
-            limit: 1,
-            used: 0,
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            isUnlimited: false
-          }
-        }
+        limitsData: defaultLimits
       });
     } finally {
       setLoading(false);
