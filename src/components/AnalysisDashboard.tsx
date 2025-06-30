@@ -25,7 +25,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
   const handleNewUpload = () => {
     const remainingAnalyses = getRemainingUsage('resume_analysis');
     
-    if (!subscription?.isPremium && remainingAnalyses === 0) {
+    if (!subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0) {
       // Show upgrade modal for free users who have exhausted quota
       setShowUpgradeModal(true);
     } else {
@@ -34,7 +34,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
     }
   };
 
-  const canUploadNew = subscription?.isPremium || getRemainingUsage('resume_analysis') > 0;
+  const canUploadNew = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('resume_analysis') > 0;
+  const canUseRestructure = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('restructure_guide') > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,20 +76,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
               )}
 
               {/* Restructure Button */}
-              <FeatureGate 
-                feature="restructure_guide"
-                showUpgradePrompt={false}
-                fallback={
-                  <button
-                    onClick={() => setShowRestructureModal(true)}
-                    className="flex items-center space-x-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed"
-                    disabled
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Restructure Guide (Premium)</span>
-                  </button>
-                }
-              >
+              {canUseRestructure ? (
                 <button
                   onClick={handleRestructure}
                   className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all shadow-lg"
@@ -96,7 +84,15 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
                   <RefreshCw className="w-4 h-4" />
                   <span>Restructure Resume</span>
                 </button>
-              </FeatureGate>
+              ) : (
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="flex items-center space-x-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-pointer hover:bg-gray-400 hover:text-gray-600 transition-all"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Restructure Guide (Premium)</span>
+                </button>
+              )}
               
               <UserMenu />
             </div>
@@ -105,14 +101,14 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
       </div>
 
       {/* Quota Exhausted Banner for Free Users */}
-      {!subscription?.isPremium && getRemainingUsage('resume_analysis') === 0 && (
+      {!subscription?.isPremium && !subscription?.isAdmin && getRemainingUsage('resume_analysis') === 0 && (
         <div className="bg-red-50 border-b border-red-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Crown className="w-5 h-5 text-red-600 mr-2" />
                 <span className="text-red-800 font-medium">
-                  Free analysis limit reached. Upgrade to Premium for unlimited uploads and 20 daily analyses.
+                  Free analysis limit reached. Some features are now restricted. Upgrade to Premium for unlimited access.
                 </span>
               </div>
               <button
@@ -132,16 +128,11 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
       </div>
 
       {/* Restructure Modal */}
-      {showRestructureModal && (
-        <FeatureGate 
-          feature="restructure_guide"
-          fallback={null}
-        >
-          <RestructureModal
-            onClose={() => setShowRestructureModal(false)}
-            analysisResults={results}
-          />
-        </FeatureGate>
+      {showRestructureModal && canUseRestructure && (
+        <RestructureModal
+          onClose={() => setShowRestructureModal(false)}
+          analysisResults={results}
+        />
       )}
 
       {/* Upgrade Modal */}
@@ -149,8 +140,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
         <SubscriptionModal
           onClose={() => setShowUpgradeModal(false)}
           feature="resume_analysis"
-          title="Upgrade to Upload New Resume"
-          description="You've reached your free analysis limit. Upgrade to Premium for unlimited resume uploads and 20 analyses per day."
+          title="Upgrade to Continue"
+          description="You've reached your free analysis limit. Upgrade to Premium for unlimited resume uploads and access to all features."
         />
       )}
     </div>

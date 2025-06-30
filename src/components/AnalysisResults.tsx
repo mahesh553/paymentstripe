@@ -1,10 +1,10 @@
-import  { useState } from 'react';
-import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb, Star, FileText, Briefcase, BarChart3, Eye, Crown } from 'lucide-react';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb, Star, FileText, Briefcase, BarChart3, Eye, Crown, Lock } from 'lucide-react';
 import KeywordHighlighter from './KeywordHighlighter';
 import JobMatchValidator from './JobMatchValidator';
 import FeatureGate from './FeatureGate';
-//import UsageIndicator from './UsageIndicator';
 import SubscriptionModal from './SubscriptionModal';
+import { useSubscription } from '../context/SubscriptionContext';
 
 interface AnalysisResultsProps {
   results: any;
@@ -15,6 +15,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const [jobMatchResults, setJobMatchResults] = useState<any>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { subscription, getRemainingUsage } = useSubscription();
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -34,13 +35,19 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
     return 'bg-red-500';
   };
 
+  // Check if user can access premium features
+  const canUseJobMatching = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('job_matching') > 0;
+  const canUseKeywordAnalysis = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('keyword_analysis') > 0;
+  const canUseAISuggestions = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('keyword_analysis') > 0;
+
   const tabs = [
     { 
       id: 'job-match', 
       name: '🎯 Job-Specific Analysis', 
       icon: <Briefcase className="w-4 h-4" />, 
       priority: true,
-      premium: true
+      premium: true,
+      disabled: !canUseJobMatching
     },
     { id: 'overview', name: 'Overview', icon: <FileText className="w-4 h-4" /> },
     { id: 'sections', name: 'Section Analysis', icon: <Target className="w-4 h-4" /> },
@@ -48,13 +55,15 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
       id: 'keywords', 
       name: 'Keywords', 
       icon: <Star className="w-4 h-4" />,
-      premium: true
+      premium: true,
+      disabled: !canUseKeywordAnalysis
     },
     { 
       id: 'improvement', 
       name: 'AI Suggestions', 
       icon: <Lightbulb className="w-4 h-4" />,
-      premium: true
+      premium: true,
+      disabled: !canUseAISuggestions
     }
   ];
 
@@ -69,6 +78,14 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
   const handlePreviewClick = () => {
     setShowUpgradeModal(true);
+  };
+
+  const handleTabClick = (tabId: string, isDisabled: boolean) => {
+    if (isDisabled) {
+      setShowUpgradeModal(true);
+    } else {
+      setActiveTab(tabId);
+    }
   };
 
   // Mock preview data for job matching
@@ -87,24 +104,39 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   return (
     <div className="space-y-6">
       {/* Job Matching Priority Banner */}
-      <div className="bg-green-600 rounded-xl shadow-lg p-6 text-white">
+      <div className={`rounded-xl shadow-lg p-6 text-white ${canUseJobMatching ? 'bg-green-600' : 'bg-gray-400'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2">🎯 Job-Specific Analysis</h2>
-            <p className="text-green-100">
-              Get the most value by analyzing your resume against specific job descriptions. 
-              This is where generic advice becomes personalized strategy.
+            <h2 className="text-2xl font-bold mb-2 flex items-center">
+              🎯 Job-Specific Analysis
+              {!canUseJobMatching && <Lock className="w-5 h-5 ml-2" />}
+            </h2>
+            <p className={canUseJobMatching ? 'text-green-100' : 'text-gray-200'}>
+              {canUseJobMatching 
+                ? "Get the most value by analyzing your resume against specific job descriptions. This is where generic advice becomes personalized strategy."
+                : "Upgrade to Premium to unlock job-specific analysis and personalized optimization strategies."
+              }
             </p>
           </div>
           <div className="text-right">
             <div className="text-4xl font-bold">
-              {displayJobMatchScore ? `${displayJobMatchScore}%` : '—'}
+              {displayJobMatchScore && canUseJobMatching ? `${displayJobMatchScore}%` : '—'}
             </div>
-            <div className="text-sm text-green-100">
-              {displayJobMatchScore ? 'Job Match Score' : 'Upload job description below'}
+            <div className={`text-sm ${canUseJobMatching ? 'text-green-100' : 'text-gray-200'}`}>
+              {displayJobMatchScore && canUseJobMatching ? 'Job Match Score' : 'Premium Feature'}
             </div>
           </div>
         </div>
+        {!canUseJobMatching && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="bg-white text-gray-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              Upgrade to Unlock
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Overall Score Card */}
@@ -193,21 +225,27 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabClick(tab.id, tab.disabled || false)}
                 className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm whitespace-nowrap relative ${
-                  activeTab === tab.id
+                  activeTab === tab.id && !tab.disabled
                     ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : tab.disabled
+                      ? 'border-transparent text-gray-400 cursor-not-allowed'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
+                disabled={tab.disabled}
               >
                 {tab.icon}
                 <span>{tab.name}</span>
-                {tab.priority && (
+                {tab.disabled && (
+                  <Lock className="w-3 h-3 ml-1" />
+                )}
+                {tab.priority && !tab.disabled && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                     !
                   </span>
                 )}
-                {tab.premium && (
+                {tab.premium && !tab.disabled && (
                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                     ★
                   </span>
@@ -219,193 +257,16 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
         <div className="p-6">
           {activeTab === 'job-match' && (
-            <FeatureGate 
-              feature="job_matching"
-              title="Unlock Job-Specific Analysis"
-              description="Get personalized insights by comparing your resume against specific job descriptions"
-              fallback={
-                <div className="space-y-6">
-                  {/* Preview Section */}
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-green-900 flex items-center">
-                        <Eye className="w-6 h-6 mr-2" />
-                        🎯 Job Analysis Preview
-                      </h3>
-                      <button
-                        onClick={handlePreviewClick}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
-                      >
-                        <Crown className="w-4 h-4 mr-2" />
-                        Unlock Full Analysis
-                      </button>
-                    </div>
-                    
-                    <p className="text-green-800 mb-4">
-                      Here's a preview of what you'll get with job-specific analysis:
-                    </p>
-
-                    {/* Preview Match Score */}
-                    <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">Sample Job Match Score</span>
-                        <div className="text-2xl font-bold text-green-600">{previewJobMatchData.match_score}%</div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full"
-                          style={{ width: `${previewJobMatchData.match_score}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Preview Insights */}
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-white rounded-lg p-4 border border-green-200">
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <CheckCircle2 className="w-4 h-4 text-green-600 mr-2" />
-                          Matching Skills ({previewJobMatchData.matching_skills.length})
-                        </h4>
-                        <div className="space-y-1">
-                          {previewJobMatchData.matching_skills.map((skill, index) => (
-                            <span key={index} className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-2 mb-1">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white rounded-lg p-4 border border-green-200">
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
-                          Skills to Add ({previewJobMatchData.missing_skills.length})
-                        </h4>
-                        <div className="space-y-1">
-                          {previewJobMatchData.missing_skills.map((skill, index) => (
-                            <span key={index} className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded mr-2 mb-1">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Preview Key Insights */}
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
-                      <h4 className="font-semibold text-gray-900 mb-3">Key Insights Preview</h4>
-                      <div className="space-y-2">
-                        {previewJobMatchData.preview_insights.map((insight, index) => (
-                          <div key={index} className="flex items-start">
-                            <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                            <span className="text-gray-700 text-sm">{insight}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Upgrade CTA */}
-                    <div className="bg-green-600 rounded-lg p-4 text-white text-center mt-4">
-                      <h4 className="font-bold mb-2">🚀 Get the Complete Analysis</h4>
-                      <p className="text-green-100 text-sm mb-3">
-                        Unlock detailed keyword analysis, specific rephrasing suggestions, 
-                        ATS optimization tips, and much more!
-                      </p>
-                      <button
-                        onClick={handlePreviewClick}
-                        className="bg-white text-green-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                      >
-                        Upgrade to Premium - $19/month
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Feature Benefits */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      What You'll Get with Premium Job Analysis:
-                    </h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">Exact Keyword Matches</h4>
-                            <p className="text-sm text-gray-600">See which keywords from the job description appear in your resume</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">Specific Rephrasing</h4>
-                            <p className="text-sm text-gray-600">Get exact suggestions on how to rephrase your experience</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">ATS Optimization</h4>
-                            <p className="text-sm text-gray-600">Ensure your resume passes Applicant Tracking Systems</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">Skills Prioritization</h4>
-                            <p className="text-sm text-gray-600">Know which skills to highlight for this specific role</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">Experience Relevance</h4>
-                            <p className="text-sm text-gray-600">Score how well your experience matches the job requirements</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-gray-900">20 Analyses Per Day</h4>
-                            <p className="text-sm text-gray-600">Optimize for multiple job applications daily</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              }
-            >
+            canUseJobMatching ? (
               <div className="space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold text-green-900 mb-3 flex items-center">
-                    <Target className="w-6 h-6 mr-2" />
-                    🚀 Maximize Your Interview Chances
-                  </h3>
-                  <p className="text-green-800 mb-4">
-                    This is the most valuable feature - analyze your resume against specific job descriptions 
-                    to get personalized, actionable insights that generic resume advice can't provide.
+                <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
+                  <p className="text-gray-700 mb-2">
+                    <strong>This is where generic resume advice becomes personalized strategy.</strong>
                   </p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-green-100">
-                      <h4 className="font-semibold text-gray-900 mb-2">What You'll Get:</h4>
-                      <ul className="text-sm text-gray-700 space-y-1">
-                        <li>• Exact keyword matches and gaps</li>
-                        <li>• Specific rephrasing suggestions</li>
-                        <li>• Skills prioritization for this role</li>
-                        <li>• Experience relevance scoring</li>
-                      </ul>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-green-100">
-                      <h4 className="font-semibold text-gray-900 mb-2">Why It Matters:</h4>
-                      <ul className="text-sm text-gray-700 space-y-1">
-                        <li>• Beat ATS systems with right keywords</li>
-                        <li>• Stand out from generic applications</li>
-                        <li>• Show perfect role alignment</li>
-                        <li>• Increase interview callbacks by 3x</li>
-                      </ul>
-                    </div>
-                  </div>
+                  <p className="text-sm text-gray-600">
+                    Paste any job description below to get specific insights on keyword gaps, 
+                    rephrasing suggestions, and exact improvements needed for that role.
+                  </p>
                 </div>
                 <JobMatchValidator 
                   onAnalysisComplete={handleJobMatchComplete}
@@ -413,7 +274,63 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   existingJobDescription={jobDescription}
                 />
               </div>
-            </FeatureGate>
+            ) : (
+              <div className="space-y-6">
+                {/* Preview Section */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold text-gray-700 flex items-center">
+                      <Lock className="w-6 h-6 mr-2" />
+                      🎯 Job Analysis - Premium Feature
+                    </h3>
+                    <button
+                      onClick={handlePreviewClick}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Unlock Full Analysis
+                    </button>
+                  </div>
+                  
+                  <p className="text-gray-600 mb-4">
+                    Job-specific analysis is available with Premium. Here's what you're missing:
+                  </p>
+
+                  {/* Preview Benefits */}
+                  <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 opacity-75">
+                      <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-green-600 mr-2" />
+                        Keyword Matching
+                      </h4>
+                      <p className="text-sm text-gray-600">See exactly which keywords from job descriptions match your resume</p>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 opacity-75">
+                      <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
+                        <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+                        Skills Gap Analysis
+                      </h4>
+                      <p className="text-sm text-gray-600">Identify missing skills and get specific recommendations</p>
+                    </div>
+                  </div>
+
+                  {/* Upgrade CTA */}
+                  <div className="bg-green-600 rounded-lg p-4 text-white text-center">
+                    <h4 className="font-bold mb-2">🚀 Unlock Job-Specific Analysis</h4>
+                    <p className="text-green-100 text-sm mb-3">
+                      Get personalized insights for every job application with Premium
+                    </p>
+                    <button
+                      onClick={handlePreviewClick}
+                      className="bg-white text-green-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                    >
+                      Upgrade to Premium - $19/month
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
           {activeTab === 'overview' && (
@@ -513,23 +430,34 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
           )}
 
           {activeTab === 'keywords' && (
-            <FeatureGate 
-              feature="keyword_analysis"
-              title="Unlock Advanced Keyword Analysis"
-              description="Get detailed keyword frequency analysis, ATS optimization insights, and industry-specific recommendations"
-              fallback={null} // Don't show anything if user doesn't have access
-            >
+            canUseKeywordAnalysis ? (
               <KeywordHighlighter keywords={results.keywords || []} />
-            </FeatureGate>
+            ) : (
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-8 text-center">
+                <div className="bg-gray-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-white" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-700 mb-2">
+                  Keyword Analysis - Premium Feature
+                </h3>
+                
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Unlock advanced keyword analysis to optimize your resume for ATS systems and improve your job search success.
+                </p>
+
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                >
+                  Upgrade to Premium
+                </button>
+              </div>
+            )
           )}
 
           {activeTab === 'improvement' && (
-            <FeatureGate 
-              feature="keyword_analysis"
-              title="Unlock AI-Powered Suggestions"
-              description="Get personalized improvement recommendations based on current hiring trends and successful resume patterns"
-              fallback={null} // Don't show anything if user doesn't have access
-            >
+            canUseAISuggestions ? (
               <div className="space-y-6">
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">
@@ -584,32 +512,29 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                     ))}
                   </div>
                 </div>
-
-                {/* Content Enhancements */}
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Content Enhancements</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {(results.content_enhancements || [
-                      {
-                        area: "Skills Section",
-                        current_state: "Basic skill list",
-                        recommended_change: "Organize by category with proficiency levels",
-                        reason: "Easier for recruiters to scan and assess fit"
-                      }
-                    ]).map((enhancement: any, index: number) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h5 className="font-medium text-gray-900 mb-2">{enhancement.area}</h5>
-                        <div className="text-sm space-y-2">
-                          <p><strong>Current:</strong> {enhancement.current_state}</p>
-                          <p><strong>Recommended:</strong> {enhancement.recommended_change}</p>
-                          <p className="text-gray-700"><strong>Why:</strong> {enhancement.reason}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
-            </FeatureGate>
+            ) : (
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-8 text-center">
+                <div className="bg-gray-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-white" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-700 mb-2">
+                  AI Suggestions - Premium Feature
+                </h3>
+                
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Get personalized improvement recommendations powered by AI and based on current hiring trends.
+                </p>
+
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                >
+                  Upgrade to Premium
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -619,8 +544,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
         <SubscriptionModal
           onClose={() => setShowUpgradeModal(false)}
           feature="job_matching"
-          title="Unlock Job-Specific Analysis"
-          description="Get personalized insights by comparing your resume against specific job descriptions"
+          title="Unlock Premium Features"
+          description="Get access to job-specific analysis, keyword optimization, and AI-powered suggestions"
         />
       )}
     </div>
