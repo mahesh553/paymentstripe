@@ -42,7 +42,7 @@ CREATE POLICY "Users can read own resumes"
     )
   );
 
-CREATE POLICY "Users can insert own resumes"
+CREATE POLICY IF NOT EXISTS "Users can insert own resumes"
   ON resumes
   FOR INSERT
   TO authenticated
