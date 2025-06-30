@@ -137,7 +137,7 @@ BEGIN
         )
       );
 
-    CREATE POLICY "Users can insert own job matches"
+    CREATE POLICY IF NOT EXISTS "Users can insert own job matches"
       ON job_matches
       FOR INSERT
       TO authenticated
