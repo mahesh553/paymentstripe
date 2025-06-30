@@ -8,6 +8,7 @@ import AnalysisDashboard from './components/AnalysisDashboard';
 import AuthModal from './components/AuthModal';
 import LoadingAnalysis from './components/LoadingAnalysis';
 import SubscriptionModal from './components/SubscriptionModal';
+import LastAnalysisModal from './components/LastAnalysisModal';
 
 type AppState = 'landing' | 'upload' | 'analyzing' | 'results';
 
@@ -16,6 +17,7 @@ function App() {
   const [analysisResults, setAnalysisResults] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
   const [lastResumeData, setLastResumeData] = useState(null);
   const { user, loading } = useAuth();
@@ -28,6 +30,7 @@ function App() {
       setAnalysisResults(null);
       setShowAuthModal(false);
       setShowSubscriptionModal(false);
+      setShowLastAnalysisModal(false);
       setPendingAnalysis(false);
       setLastResumeData(null);
     }
@@ -54,20 +57,8 @@ function App() {
       
       // If user is free tier, has no remaining analyses, and has previous resume data
       if (!subscription.isPremium && remainingAnalyses === 0 && storedResumeData) {
-        // Parse the stored resume data to get analysis results
-        try {
-          const resumeData = JSON.parse(storedResumeData);
-          if (resumeData.analysisResults) {
-            setAnalysisResults(resumeData.analysisResults);
-            setCurrentState('results');
-          } else {
-            // If no analysis results, redirect to upload but show quota exhausted state
-            setCurrentState('upload');
-          }
-        } catch (error) {
-          console.error('Error parsing resume data:', error);
-          setCurrentState('upload');
-        }
+        // Show modal asking if they want to see their last analysis
+        setShowLastAnalysisModal(true);
       }
     };
 
@@ -93,20 +84,7 @@ function App() {
 
   const handleGetStarted = () => {
     if (user) {
-      // Check quota status before deciding where to go
-      const remainingAnalyses = getRemainingUsage('resume_analysis');
-      
-      if (!subscription?.isPremium && remainingAnalyses === 0 && lastResumeData) {
-        // User has exhausted quota and has previous data, go to results
-        if (lastResumeData.analysisResults) {
-          setAnalysisResults(lastResumeData.analysisResults);
-          setCurrentState('results');
-        } else {
-          setCurrentState('upload');
-        }
-      } else {
-        setCurrentState('upload');
-      }
+      setCurrentState('upload');
     } else {
       setShowAuthModal(true);
     }
@@ -161,6 +139,26 @@ function App() {
     setShowSubscriptionModal(false);
   };
 
+  const handleLastAnalysisModalClose = () => {
+    setShowLastAnalysisModal(false);
+  };
+
+  const handleViewLastAnalysis = () => {
+    setShowLastAnalysisModal(false);
+    if (lastResumeData?.analysisResults) {
+      setAnalysisResults(lastResumeData.analysisResults);
+      setCurrentState('results');
+    } else {
+      // If no analysis results, go to upload page
+      setCurrentState('upload');
+    }
+  };
+
+  const handleUpgradeFromModal = () => {
+    setShowLastAnalysisModal(false);
+    setShowSubscriptionModal(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -210,6 +208,15 @@ function App() {
           feature="resume_analysis"
           title="Upgrade to Continue"
           description="You've reached your free analysis limit. Upgrade to get 20 analyses per day."
+        />
+      )}
+
+      {showLastAnalysisModal && lastResumeData && (
+        <LastAnalysisModal
+          onClose={handleLastAnalysisModalClose}
+          onViewAnalysis={handleViewLastAnalysis}
+          onUpgrade={handleUpgradeFromModal}
+          resumeData={lastResumeData}
         />
       )}
     </div>
