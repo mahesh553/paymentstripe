@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb,
 import KeywordHighlighter from './KeywordHighlighter';
 import JobMatchValidator from './JobMatchValidator';
 import FeatureGate from './FeatureGate';
-import UsageIndicator from './UsageIndicator';
+//import UsageIndicator from './UsageIndicator';
 import SubscriptionModal from './SubscriptionModal';
 
 interface AnalysisResultsProps {
