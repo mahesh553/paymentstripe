@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Upload, Target, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertCircle, Zap, Star, ArrowRight, Lightbulb } from 'lucide-react';
 import { compareWithJobDescription } from '../services/geminiService';
 
