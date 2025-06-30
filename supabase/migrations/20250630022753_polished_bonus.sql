@@ -308,28 +308,28 @@ BEGIN
 END $$;
 
 -- Create RLS Policies
-CREATE POLICY "Users can view their own profile" ON xxpj_users FOR SELECT TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Users can update their own profile" ON xxpj_users FOR UPDATE TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Users can insert their own profile" ON xxpj_users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
-CREATE POLICY "Users can delete their own profile" ON xxpj_users FOR DELETE TO authenticated USING (auth.uid() = id);
+CREATE POLICY IF NOT EXISTS "Users can view their own profile" ON xxpj_users FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY IF NOT EXISTS "Users can update their own profile" ON xxpj_users FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY  IF NOT EXISTS "Users can insert their own profile" ON xxpj_users  FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+CREATE POLICY IF NOT EXISTS "Users can delete their own profile" ON xxpj_users FOR DELETE TO authenticated USING (auth.uid() = id);
 
-CREATE POLICY "Users can read own subscriptions" ON xxpj_subscriptions FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own subscriptions" ON xxpj_subscriptions FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can read own subscriptions" ON xxpj_subscriptions FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can update own subscriptions" ON xxpj_subscriptions FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can read own usage" ON xxpj_usage FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own usage" ON xxpj_usage FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can read own usage" ON xxpj_usage FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can insert own usage" ON xxpj_usage FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can read own usage tracking" ON xxpj_usage_tracking FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own usage tracking" ON xxpj_usage_tracking FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own usage tracking" ON xxpj_usage_tracking FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can read own usage tracking" ON xxpj_usage_tracking FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can insert own usage tracking" ON xxpj_usage_tracking FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can update own usage tracking" ON xxpj_usage_tracking FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can read own resumes" ON resumes FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICYIF NOT EXISTS  "Users can read own resumes" ON resumes FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 
-CREATE POLICY "Users can read own analyses" ON analyses FOR SELECT TO authenticated USING (
+CREATE POLICY IF NOT EXISTS "Users can read own analyses" ON analyses FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
@@ -337,7 +337,7 @@ CREATE POLICY "Users can read own analyses" ON analyses FOR SELECT TO authentica
   )
 );
 
-CREATE POLICY "Users can insert own analyses" ON analyses FOR INSERT TO authenticated WITH CHECK (
+CREATE POLICY IF NOT EXISTS "Users can insert own analyses" ON analyses FOR INSERT TO authenticated WITH CHECK (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
@@ -345,7 +345,7 @@ CREATE POLICY "Users can insert own analyses" ON analyses FOR INSERT TO authenti
   )
 );
 
-CREATE POLICY "Users can read own job matches" ON job_matches FOR SELECT TO authenticated USING (
+CREATE POLICY IF NOT EXISTS "Users can read own job matches" ON job_matches FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
@@ -353,7 +353,7 @@ CREATE POLICY "Users can read own job matches" ON job_matches FOR SELECT TO auth
   )
 );
 
-CREATE POLICY "Users can insert own job matches" ON job_matches FOR INSERT TO authenticated WITH CHECK (
+CREATE POLICY IF NOT EXISTS "Users can insert own job matches" ON job_matches FOR INSERT TO authenticated WITH CHECK (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
