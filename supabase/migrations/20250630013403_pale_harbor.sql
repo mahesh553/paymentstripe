@@ -100,7 +100,7 @@ BEGIN
     SELECT 1 FROM pg_policies 
     WHERE tablename = 'xxpj_subscriptions' AND policyname = 'Users can update own xxpj_subscriptions'
   ) THEN
-    CREATE POLICY "Users can update own xxpj_subscriptions"
+    CREATE POLICY IF NOT EXISTS "Users can update own xxpj_subscriptions"
       ON xxpj_subscriptions
       FOR UPDATE
       TO authenticated
