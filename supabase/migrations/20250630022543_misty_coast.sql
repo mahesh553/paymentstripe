@@ -318,7 +318,7 @@ CREATE POLICY IF NOT EXISTS "Users can update own usage tracking" ON xxpj_usage_
 
 CREATE POLICY IF NOT EXISTS "Users can read own resumes" ON resumes FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 CREATE POLICY IF NOT EXISTS "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 CREATE POLICY "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 
 CREATE POLICY "Users can read own analyses" ON analyses FOR SELECT TO authenticated USING (
