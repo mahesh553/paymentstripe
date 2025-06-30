@@ -74,12 +74,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
       {showRestructureModal && (
         <FeatureGate 
           feature="restructure_guide"
-          fallback={
-            <RestructureModal
-              onClose={() => setShowRestructureModal(false)}
-              analysisResults={results}
-            />
-          }
+          fallback={null} // Don't show anything if user doesn't have access
         >
           <RestructureModal
             onClose={() => setShowRestructureModal(false)}

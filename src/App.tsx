@@ -35,10 +35,17 @@ function App() {
   useEffect(() => {
     if (pendingAnalysis && !showSubscriptionModal) {
       setPendingAnalysis(false);
-      // Proceed with analysis regardless of subscription status
-      setCurrentState('analyzing');
+      
+      // Only proceed with analysis if user has upgraded to premium
+      // This is the key change - we check subscription status again
+      if (subscription?.isPremium) {
+        setCurrentState('analyzing');
+      } else {
+        // User closed modal without upgrading, stay on upload page
+        setCurrentState('upload');
+      }
     }
-  }, [pendingAnalysis, showSubscriptionModal]);
+  }, [pendingAnalysis, showSubscriptionModal, subscription?.isPremium]);
 
   const handleGetStarted = () => {
     if (user) {

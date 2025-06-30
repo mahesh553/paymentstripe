@@ -47,14 +47,24 @@ const FeatureGate: React.FC<FeatureGateProps> = ({
     );
   }
 
+  // If user has access, show the children
   if (hasAccess) {
     return <>{children}</>;
   }
 
+  // If fallback is provided and we're not showing upgrade prompt, show the fallback
+  if (fallback && !showUpgradePrompt) {
+    return <>{fallback}</>;
+  }
+
+  // If we have a fallback and we're showing upgrade prompt, show the fallback
+  // This is the key change - we always show the fallback for free users
+  // instead of proceeding to premium content when they close the modal
   if (fallback) {
     return <>{fallback}</>;
   }
 
+  // If no fallback and we're not showing upgrade prompt, return null
   if (!showUpgradePrompt) {
     return null;
   }

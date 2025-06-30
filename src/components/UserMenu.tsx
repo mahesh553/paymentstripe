@@ -157,11 +157,7 @@ const UserMenu: React.FC = () => {
       {showHistory && (
         <FeatureGate 
           feature="resume_history"
-          fallback={
-            <ResumeHistoryModal
-              onClose={() => setShowHistory(false)}
-            />
-          }
+          fallback={null} // Don't show anything if user doesn't have access
         >
           <ResumeHistoryModal
             onClose={() => setShowHistory(false)}

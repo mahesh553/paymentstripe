@@ -517,6 +517,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               feature="keyword_analysis"
               title="Unlock Advanced Keyword Analysis"
               description="Get detailed keyword frequency analysis, ATS optimization insights, and industry-specific recommendations"
+              fallback={null} // Don't show anything if user doesn't have access
             >
               <KeywordHighlighter keywords={results.keywords || []} />
             </FeatureGate>
@@ -527,6 +528,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               feature="keyword_analysis"
               title="Unlock AI-Powered Suggestions"
               description="Get personalized improvement recommendations based on current hiring trends and successful resume patterns"
+              fallback={null} // Don't show anything if user doesn't have access
             >
               <div className="space-y-6">
                 <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
