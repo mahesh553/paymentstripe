@@ -277,7 +277,7 @@ export const trackUsage = async (userId: string, feature: string) => {
 // Get user subscription status
 export const getUserSubscriptionStatus = async (userId: string) => {
   const { data, error } = await supabase
-    .rpc('get_user_subscription_status', { user_uuid: userId })
+    .rpc('get_user_subscription_status')
   
   return { data, error }
 }
