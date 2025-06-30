@@ -3,7 +3,6 @@ import { FileText, Zap, Target, Users, ArrowRight, CheckCircle, Eye, Calendar, C
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import { getUserResumes } from '../lib/supabase';
-import LastAnalysisModal from './LastAnalysisModal';
 import SubscriptionModal from './SubscriptionModal';
 
 interface LandingPageProps {
@@ -15,7 +14,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
   const { user } = useAuth();
   const { subscription, getRemainingUsage } = useSubscription();
   const [lastResumeData, setLastResumeData] = useState<any>(null);
-  const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [loadingLastResume, setLoadingLastResume] = useState(false);
 
@@ -81,73 +79,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
     }
   }, [user]);
 
-  // Check for quota exhaustion and show modal logic
-  useEffect(() => {
-    const checkUserResumeStatus = async () => {
-      if (!user || !subscription || loadingLastResume) return;
-
-      console.log('Checking user resume status...', { 
-        user: user.email, 
-        subscription: subscription.planType,
-        isPremium: subscription.isPremium,
-        isAdmin: subscription.isAdmin,
-        hasLastResumeData: !!lastResumeData
-      });
-
-      // Check if user has exhausted their quota
-      const remainingAnalyses = getRemainingUsage('resume_analysis');
-      const totalLimit = subscription.isPremium || subscription.isAdmin ? -1 : 1;
-      
-      console.log('Usage check:', { 
-        remainingAnalyses, 
-        totalLimit,
-        isPremium: subscription.isPremium,
-        isAdmin: subscription.isAdmin
-      });
-
-      // If user is free tier, has no remaining analyses, and has previous resume data
-      if (!subscription.isPremium && !subscription.isAdmin && remainingAnalyses === 0 && lastResumeData) {
-        console.log('Showing last analysis modal for free user with exhausted quota');
-        // Show modal asking if they want to see their last analysis
-        setShowLastAnalysisModal(true);
-      } else {
-        console.log('Not showing modal:', {
-          isPremium: subscription.isPremium,
-          isAdmin: subscription.isAdmin,
-          remainingAnalyses,
-          hasLastResumeData: !!lastResumeData
-        });
-      }
-    };
-
-    // Only check when all data is loaded
-    if (user && subscription && !loadingLastResume) {
-      // Add a small delay to ensure all context is loaded
-      setTimeout(checkUserResumeStatus, 500);
-    }
-  }, [user, subscription, getRemainingUsage, lastResumeData, loadingLastResume]);
-
   const handleViewLastAnalysis = () => {
-    if (onViewLastAnalysis && lastResumeData) {
-      // Store the resume data in session storage for the analysis flow
-      sessionStorage.setItem('currentResume', JSON.stringify({
-        ...lastResumeData,
-        text: lastResumeData.original_text || lastResumeData.text
-      }));
-      
-      onViewLastAnalysis(lastResumeData);
-    } else {
-      setShowLastAnalysisModal(true);
-    }
-  };
-
-  const handleUpgradeFromModal = () => {
-    setShowLastAnalysisModal(false);
-    setShowUpgradeModal(true);
-  };
-
-  const handleViewAnalysisFromModal = () => {
-    setShowLastAnalysisModal(false);
     if (onViewLastAnalysis && lastResumeData) {
       // Store the resume data in session storage for the analysis flow
       sessionStorage.setItem('currentResume', JSON.stringify({
@@ -198,7 +130,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
     "Skills gap analysis and suggestions"
   ];
 
-  // Check if user has exhausted their quota
+  // Check if user has exhausted their quota for NEW uploads only
   const remainingAnalyses = getRemainingUsage('resume_analysis');
   const isQuotaExhausted = user && !subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0;
   const hasLastResumeData = !!lastResumeData;
@@ -219,39 +151,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          {/* Quota Exhausted Banner for Free Users with Last Resume */}
-          {isQuotaExhausted && hasLastResumeData && (
-            <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Lock className="w-6 h-6 text-red-600 mr-3" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-red-900">Free Analysis Limit Reached</h3>
-                    <p className="text-red-700 mt-1">
-                      You've used your free monthly analysis. Upgrade to Premium for 20 analyses per day.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={handleViewLastAnalysis}
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Last Analysis
-                  </button>
-                  <button
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center"
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    Upgrade Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Perfect Your Resume with
@@ -276,8 +175,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
               </button>
             </div>
 
-            {/* Last Resume Analysis Card for Free Users */}
-            {user && !subscription?.isPremium && !subscription?.isAdmin && hasLastResumeData && !isQuotaExhausted && (
+            {/* Last Resume Analysis Card - Available for ALL users */}
+            {user && hasLastResumeData && (
               <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto border border-gray-200 mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
@@ -301,7 +200,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
                 
                 <div className="flex items-center text-sm text-gray-500 mb-4">
                   <Calendar className="w-4 h-4 mr-1" />
-                  <span>Analyzed on {formatDate(lastResumeData.created_at)}</span>
+                  <span>Uploaded on {formatDate(lastResumeData.created_at)}</span>
                 </div>
                 
                 <button
@@ -317,13 +216,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
                   ) : (
                     <>
                       <Eye className="w-4 h-4 mr-2" />
-                      View Last Analysis
+                      {lastResumeData.analysisResults ? 'View Analysis' : 'Analyze Resume'}
                     </>
                   )}
                 </button>
                 
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  Free users get 1 analysis per month
+                  Always free to analyze your last uploaded resume
                 </p>
               </div>
             )}
@@ -425,16 +324,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
           </button>
         </div>
       </div>
-
-      {/* Last Analysis Modal */}
-      {showLastAnalysisModal && lastResumeData && (
-        <LastAnalysisModal
-          onClose={() => setShowLastAnalysisModal(false)}
-          onViewAnalysis={handleViewAnalysisFromModal}
-          onUpgrade={handleUpgradeFromModal}
-          resumeData={lastResumeData}
-        />
-      )}
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (

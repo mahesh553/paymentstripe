@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-//import { supabase } from './lib/supabase';
 import { useAuth } from './context/AuthContext';
 import { useSubscription } from './context/SubscriptionContext';
 import LandingPage from './components/LandingPage';
@@ -8,7 +7,6 @@ import AnalysisDashboard from './components/AnalysisDashboard';
 import AuthModal from './components/AuthModal';
 import LoadingAnalysis from './components/LoadingAnalysis';
 import SubscriptionModal from './components/SubscriptionModal';
-import LastAnalysisModal from './components/LastAnalysisModal';
 
 type AppState = 'landing' | 'upload' | 'analyzing' | 'results';
 
@@ -17,10 +15,9 @@ function App() {
   const [analysisResults, setAnalysisResults] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
   const { user, loading } = useAuth();
-  const { subscription, trackFeatureUsage, getRemainingUsage, refreshSubscription, getUsageLimit } = useSubscription();
+  const { subscription, trackFeatureUsage, getRemainingUsage } = useSubscription();
 
   // Reset to landing page when user logs out
   useEffect(() => {
@@ -29,7 +26,6 @@ function App() {
       setAnalysisResults(null);
       setShowAuthModal(false);
       setShowSubscriptionModal(false);
-      setShowLastAnalysisModal(false);
       setPendingAnalysis(false);
     }
   }, [user, loading]);
@@ -74,7 +70,18 @@ function App() {
   const handleFileUploaded = async () => {
     if (!user) return;
 
-    // Check if user can perform resume analysis
+    // For new file uploads, check quota and track usage
+    const remainingAnalyses = getRemainingUsage('resume_analysis');
+    const isQuotaExhausted = !subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0;
+
+    if (isQuotaExhausted) {
+      // Set pending analysis flag and show subscription modal
+      setPendingAnalysis(true);
+      setShowSubscriptionModal(true);
+      return;
+    }
+
+    // Check if user can perform resume analysis (this will track usage)
     const canAnalyze = await trackFeatureUsage('resume_analysis');
     
     if (!canAnalyze) {
@@ -85,6 +92,12 @@ function App() {
     }
 
     // User has access, proceed with analysis
+    setCurrentState('analyzing');
+  };
+
+  const handleAnalyzeExistingResume = () => {
+    // For existing resumes from database, allow analysis without quota check
+    // This allows all users to analyze their last uploaded resume
     setCurrentState('analyzing');
   };
 
@@ -124,41 +137,6 @@ function App() {
     setShowSubscriptionModal(false);
   };
 
-  const handleLastAnalysisModalClose = () => {
-    setShowLastAnalysisModal(false);
-    // After closing the modal, go to upload page
-    setCurrentState('upload');
-  };
-
-  const handleViewLastAnalysis = () => {
-    setShowLastAnalysisModal(false);
-    // The resume data is already stored in session storage by the LandingPage component
-    const storedResumeData = sessionStorage.getItem('currentResume');
-    if (storedResumeData) {
-      try {
-        const resumeData = JSON.parse(storedResumeData);
-        if (resumeData.analysisResults) {
-          setAnalysisResults(resumeData.analysisResults);
-          setCurrentState('results');
-        } else {
-          // If no analysis results, go to analyzing state
-          setCurrentState('analyzing');
-        }
-      } catch (error) {
-        console.error('Error parsing stored resume data:', error);
-        setCurrentState('upload');
-      }
-    } else {
-      // If no stored data, go to upload page
-      setCurrentState('upload');
-    }
-  };
-
-  const handleUpgradeFromModal = () => {
-    setShowLastAnalysisModal(false);
-    setShowSubscriptionModal(true);
-  };
-
   // Handle viewing last analysis from landing page
   const handleViewLastAnalysisFromLanding = (resumeData: any) => {
     if (resumeData?.analysisResults) {
@@ -194,6 +172,7 @@ function App() {
         return (
           <UploadPage 
             onFileUploaded={handleFileUploaded}
+            onAnalyzeExisting={handleAnalyzeExistingResume}
             isQuotaExhausted={!subscription?.isPremium && !subscription?.isAdmin && getRemainingUsage('resume_analysis') === 0}
           />
         );
@@ -223,15 +202,6 @@ function App() {
           feature="resume_analysis"
           title="Upgrade to Continue"
           description="You've reached your free analysis limit. Upgrade to get 20 analyses per day."
-        />
-      )}
-
-      {showLastAnalysisModal && (
-        <LastAnalysisModal
-          onClose={handleLastAnalysisModalClose}
-          onViewAnalysis={handleViewLastAnalysis}
-          onUpgrade={handleUpgradeFromModal}
-          resumeData={null} // This will be handled by the modal itself
         />
       )}
     </div>

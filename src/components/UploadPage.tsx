@@ -10,10 +10,11 @@ import SubscriptionModal from './SubscriptionModal';
 
 interface UploadPageProps {
   onFileUploaded: () => void;
+  onAnalyzeExisting: () => void;
   isQuotaExhausted?: boolean;
 }
 
-const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhausted }) => {
+const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, onAnalyzeExisting, isQuotaExhausted }) => {
   const { user } = useAuth();
   const { subscription, getRemainingUsage, getUsageLimit } = useSubscription();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -191,32 +192,15 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
   const handleAnalyzeLastResume = async () => {
     if (!lastResumeData || !user) return;
 
-    // Check if user can perform resume analysis
-    const { subscription: currentSubscription, trackFeatureUsage } = await import('../context/SubscriptionContext');
-    
-    // For quota-exhausted users, show upgrade modal
-    if (!subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
     try {
-      // Track feature usage
-      const canAnalyze = await trackFeatureUsage('resume_analysis');
-      
-      if (!canAnalyze) {
-        setShowUpgradeModal(true);
-        return;
-      }
-
       // Store the last resume data for analysis
       sessionStorage.setItem('currentResume', JSON.stringify({
         ...lastResumeData,
         text: lastResumeData.original_text || lastResumeData.text
       }));
 
-      // Proceed to analysis
-      onFileUploaded();
+      // For existing resumes, allow analysis without quota restrictions
+      onAnalyzeExisting();
     } catch (error) {
       console.error('Error analyzing last resume:', error);
       setUploadError('Failed to analyze last resume. Please try again.');
@@ -239,8 +223,8 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
         detail: lastResumeData.analysisResults 
       }));
     } else {
-      // If no analysis results, start new analysis
-      onFileUploaded();
+      // If no analysis results, start new analysis (without quota check for existing resumes)
+      onAnalyzeExisting();
     }
   };
 
@@ -261,7 +245,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Quota Status Banner */}
+        {/* Quota Status Banner - Only show for new uploads */}
         {isQuotaExhausted && (
           <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
             <div className="flex items-center justify-between">
@@ -270,7 +254,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
                 <div>
                   <h3 className="text-lg font-semibold text-red-900">Free Analysis Limit Reached</h3>
                   <p className="text-red-700 mt-1">
-                    You've used your free monthly analysis. Upgrade to Premium for 20 analyses per day.
+                    You've used your free monthly analysis. You can still analyze your last uploaded resume or upgrade to Premium for unlimited new uploads.
                   </p>
                 </div>
               </div>
@@ -285,17 +269,20 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
           </div>
         )}
 
-        {/* Previous Resume Analysis Display */}
-        {lastResumeData && isQuotaExhausted && (
-          <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Previous Resume Analysis</h3>
-            <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+        {/* Last Resume Analysis - Available for ALL users */}
+        {lastResumeData && (
+          <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <FileText className="w-5 h-5 text-green-600 mr-2" />
+              Your Last Resume
+            </h3>
+            <div className="bg-white rounded-lg p-4 flex items-center justify-between border border-green-200">
               <div className="flex items-center">
                 <FileText className="w-8 h-8 text-green-600 mr-3" />
                 <div>
                   <p className="font-medium text-gray-900">{lastResumeData.filename}</p>
                   <p className="text-sm text-gray-500">
-                    Analyzed on {new Date(lastResumeData.created_at).toLocaleDateString()}
+                    Uploaded on {new Date(lastResumeData.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -336,67 +323,15 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
                 </button>
               </div>
             </div>
-            <p className="text-gray-600 mt-4">
-              {lastResumeData.analysisResults 
-                ? 'View your previous analysis results or upgrade to Premium for unlimited new analyses.'
-                : 'This resume hasn\'t been analyzed yet. Click "Analyze Resume" to get insights, or upgrade to Premium for unlimited analyses.'
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Last Resume Quick Analysis for Users with Remaining Quota */}
-        {lastResumeData && !isQuotaExhausted && canUpload && (
-          <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FileText className="w-5 h-5 text-green-600 mr-2" />
-              Quick Action: Analyze Your Last Resume
-            </h3>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="bg-white p-3 rounded-lg border border-green-200 mr-4">
-                  <FileText className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{lastResumeData.filename}</p>
-                  <p className="text-sm text-gray-600">
-                    Uploaded on {new Date(lastResumeData.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                {lastResumeData.analysisResults && (
-                  <button
-                    onClick={handleViewLastResults}
-                    disabled={loadingLastResume}
-                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    View Results
-                  </button>
-                )}
-                <button
-                  onClick={handleAnalyzeLastResume}
-                  disabled={loadingLastResume}
-                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
-                >
-                  {loadingLastResume ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      {lastResumeData.analysisResults ? 'Re-analyze' : 'Analyze This Resume'}
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="mt-4 bg-white rounded-lg p-4 border border-green-200">
+              <p className="text-green-800 text-sm">
+                <strong>💡 Good news!</strong> You can always analyze your last uploaded resume for free, regardless of your plan. 
+                {lastResumeData.analysisResults 
+                  ? ' View your previous analysis results or re-analyze to get fresh insights.'
+                  : ' Click "Analyze Resume" to get detailed insights about your resume.'
+                }
+              </p>
             </div>
-            <p className="text-sm text-green-700 mt-3">
-              💡 Skip the upload step and analyze your most recent resume directly from our database.
-            </p>
           </div>
         )}
 
@@ -527,9 +462,12 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
             <div className="inline-flex items-center bg-white rounded-lg px-4 py-2 border border-gray-200">
               <span className="text-sm text-gray-600 mr-2">Free Plan:</span>
               <span className={`font-semibold ${remainingAnalyses > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {usedAnalyses}/{totalLimit > 0 ? totalLimit : 1} analyses used this month
+                {usedAnalyses}/{totalLimit > 0 ? totalLimit : 1} new uploads used this month
               </span>
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              You can always analyze your last uploaded resume for free
+            </p>
           </div>
         )}
 
