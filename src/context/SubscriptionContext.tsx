@@ -2,6 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
+// Add interface for RPC data structure
+interface FeatureLimitRpcData {
+  feature_type: string;
+  usage_limit: number;
+  current_usage: number;
+  reset_date: string;
+  is_unlimited: boolean;
+}
+
 interface SubscriptionStatus {
   isPremium: boolean;
   isAdmin: boolean;
@@ -70,8 +79,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Continue with default values
       }
 
-      // Get feature limits with error handling
-      let limitsData = null;
+      // Get feature limits with error handling and proper typing
+      let limitsData: FeatureLimitRpcData[] | null = null;
       try {
         const { data, error } = await supabase
           .rpc('get_feature_limits', { user_uuid: user.id });
@@ -80,15 +89,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           console.error('Error fetching limits data:', error);
           // Continue with default values
         } else {
-          limitsData = data;
+          // Cast the data to our defined interface
+          limitsData = data as FeatureLimitRpcData[];
         }
       } catch (error) {
         console.error('RPC call for limits failed:', error);
         // Continue with default values
       }
 
-      // Transform limits data with fallbacks
-      const limitsMap = (limitsData || []).reduce((acc, item) => {
+      // Transform limits data with fallbacks and proper typing
+      const limitsMap = (limitsData || []).reduce((acc: Record<string, { limit: number; used: number; resetDate: string; isUnlimited: boolean }>, item: FeatureLimitRpcData) => {
         acc[item.feature_type] = {
           limit: item.usage_limit,
           used: item.current_usage,
@@ -96,7 +106,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           isUnlimited: item.is_unlimited
         };
         return acc;
-      }, {} as Record<string, { limit: number; used: number; resetDate: string; isUnlimited: boolean }>);
+      }, {});
 
       // Add default limits for free users if no data returned
       if (Object.keys(limitsMap).length === 0) {
@@ -111,11 +121,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       }
 
-      // Legacy usage data for backward compatibility
-      const usageMap = (limitsData || []).reduce((acc, item) => {
+      // Legacy usage data for backward compatibility with proper typing
+      const usageMap = (limitsData || []).reduce((acc: Record<string, number>, item: FeatureLimitRpcData) => {
         acc[item.feature_type] = item.current_usage;
         return acc;
-      }, {} as Record<string, number>);
+      }, {});
 
       const status = statusData?.[0];
       const newSubscription = {
@@ -132,7 +142,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error('Error in fetchSubscriptionStatus:', error);
       // Set default free tier subscription
       const defaultResetDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const defaultLimits = {} as Record<string, { limit: number; used: number; resetDate: string; isUnlimited: boolean }>;
+      const defaultLimits: Record<string, { limit: number; used: number; resetDate: string; isUnlimited: boolean }> = {};
       
       ['resume_analysis', 'job_matching', 'keyword_analysis', 'restructure_guide'].forEach(feature => {
         defaultLimits[feature] = {
