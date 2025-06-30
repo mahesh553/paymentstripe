@@ -93,6 +93,21 @@ export const uploadResume = async (file: File, userId: string) => {
 }
 
 export const createResumeRecord = async (resumeData: any) => {
+  // Ensure user exists in xxpj_users before creating resume record
+  const { data: userExists, error: userError } = await supabase
+    .from('xxpj_users')
+    .select('id')
+    .eq('id', resumeData.user_id)
+    .single()
+
+  if (userError || !userExists) {
+    console.error('User not found in xxpj_users:', userError)
+    return { 
+      data: null, 
+      error: new Error('User profile not found. Please ensure you are properly logged in.') 
+    }
+  }
+
   const { data, error } = await supabase
     .from('resumes')
     .insert([resumeData])

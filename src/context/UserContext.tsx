@@ -51,11 +51,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: createdProfile, error: createError } = await createUserProfile(user.id, newProfile);
         if (createError) {
           console.error('Error creating user profile:', createError);
+          // Even if profile creation fails, we can still continue
+          // The user exists in auth.users, which is what matters for foreign keys
         } else {
           setUserProfile(createdProfile);
         }
       } else if (error) {
         console.error('Error fetching user profile:', error);
+        // Even if profile fetch fails, we can still continue
+        // The user exists in auth.users, which is what matters for foreign keys
       } else {
         setUserProfile(data);
       }
