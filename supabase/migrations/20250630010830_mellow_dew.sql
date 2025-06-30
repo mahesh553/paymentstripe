@@ -32,7 +32,7 @@ DROP POLICY IF EXISTS "Users can update own resumes" ON resumes;
 DROP POLICY IF EXISTS "Users can delete own resumes" ON resumes;
 
 -- Create new RLS policies that work with xxpj_users
-CREATE POLICY "Users can read own resumes"
+CREATE POLICY IF NOT EXISTS "Users can read own resumes"
   ON resumes
   FOR SELECT
   TO authenticated
