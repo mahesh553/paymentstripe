@@ -62,7 +62,7 @@ CREATE POLICY "Users can update own resumes"
     )
   );
 
-CREATE POLICY "Users can delete own resumes"
+CREATE POLICY IF NOT EXISTS "Users can delete own resumes"
   ON resumes
   FOR DELETE
   TO authenticated
