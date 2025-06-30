@@ -13,54 +13,66 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
   const [restructureData, setRestructureData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const { trackFeatureUsage } = useSubscription();
 
-  // Prevent modal from closing when switching tabs
+  // Prevent modal from closing when switching tabs or losing focus
   useEffect(() => {
     const handleVisibilityChange = () => {
-      // Don't close modal on visibility change
+      // Prevent any automatic closure on visibility change
       return;
     };
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Warn user before closing tab/window
-      e.preventDefault();
-      e.returnValue = '';
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
-
-  // Focus management to keep modal active
-  useEffect(() => {
     const handleFocus = () => {
-      if (modalRef.current) {
+      // Keep modal focused when window regains focus
+      if (modalRef.current && document.visibilityState === 'visible') {
         modalRef.current.focus();
       }
     };
 
+    const handleBlur = (e: FocusEvent) => {
+      // Prevent modal from closing on blur events
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    // Focus the modal initially
+    if (modalRef.current) {
+      modalRef.current.focus();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
   }, []);
 
+  // Generate suggestions only once when modal opens
   useEffect(() => {
+    let isMounted = true;
+
     const generateDynamicSuggestions = async () => {
+      if (isGenerating || restructureData) return; // Prevent multiple calls
+
       try {
+        setIsGenerating(true);
         setLoading(true);
         setError(null);
 
         // Track feature usage
         const canUse = await trackFeatureUsage('restructure_guide');
         if (!canUse) {
-          setError('You have reached your usage limit for restructure guides. Please upgrade to continue.');
-          setLoading(false);
+          if (isMounted) {
+            setError('You have reached your usage limit for restructure guides. Please upgrade to continue.');
+            setLoading(false);
+          }
           return;
         }
 
@@ -74,17 +86,29 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
         
         // Generate dynamic restructure suggestions based on actual resume content
         const suggestions = await generateRestructureSuggestions(resume.text, analysisResults);
-        setRestructureData(suggestions);
+        
+        if (isMounted) {
+          setRestructureData(suggestions);
+        }
       } catch (err) {
         console.error('Error generating restructure suggestions:', err);
-        setError(err instanceof Error ? err.message : 'Failed to generate restructure suggestions');
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to generate restructure suggestions');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsGenerating(false);
+        }
       }
     };
 
     generateDynamicSuggestions();
-  }, [analysisResults, trackFeatureUsage]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array to run only once
 
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -127,16 +151,40 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
     }
   };
 
+  const handleClose = () => {
+    // Explicit close handler
+    onClose();
+  };
+
+  // Prevent escape key from closing modal accidentally
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only close on explicit escape if not loading
+        if (!loading && !isGenerating) {
+          onClose();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [loading, isGenerating, onClose]);
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleOverlayClick}
+      style={{ zIndex: 9999 }} // Ensure highest z-index
     >
       <div 
         ref={modalRef}
         className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
         onClick={handleModalClick}
         tabIndex={-1}
+        style={{ outline: 'none' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-green-600 text-white">
@@ -147,8 +195,9 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
             </p>
           </div>
           <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors"
+            onClick={handleClose}
+            className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-green-500 rounded"
+            type="button"
           >
             <X className="w-6 h-6" />
           </button>
@@ -159,8 +208,9 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4">
-                  <Zap className="w-6 h-6 text-green-600 animate-pulse" />
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                  <Zap className="w-6 h-6 text-green-600 absolute top-3 left-1/2 transform -translate-x-1/2" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Analyzing Your Resume
@@ -183,8 +233,9 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
               <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to Generate Suggestions</h3>
               <p className="text-red-700 mb-4">{error}</p>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                type="button"
               >
                 Close
               </button>
@@ -254,6 +305,7 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
                           <button
                             onClick={() => handleCopy(`${point.id}-suggestion`, point.suggested)}
                             className="flex items-center space-x-1 text-green-700 hover:text-green-900 text-sm"
+                            type="button"
                           >
                             {copiedItems.has(`${point.id}-suggestion`) ? (
                               <CheckCircle className="w-4 h-4" />
@@ -273,6 +325,7 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
                           <button
                             onClick={() => handleCopy(`${point.id}-example`, point.example)}
                             className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 text-sm"
+                            type="button"
                           >
                             {copiedItems.has(`${point.id}-example`) ? (
                               <CheckCircle className="w-4 h-4" />
@@ -329,8 +382,9 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
             💡 Pro tip: Focus on high-priority items first for maximum impact
           </p>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            type="button"
           >
             Got It!
           </button>
