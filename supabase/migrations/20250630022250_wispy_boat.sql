@@ -304,9 +304,9 @@ CREATE POLICY IF NOT EXISTS "Users can insert own usage" ON xxpj_usage FOR INSER
 CREATE POLICY IF NOT EXISTS "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
 CREATE POLICY IF NOT EXISTS "Users can read own resumes" ON resumes FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
-CREATE POLICY "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 
 -- Performance indexes (only create if they don't exist)
 CREATE INDEX IF NOT EXISTS idx_xxpj_users_email ON xxpj_users(email);
