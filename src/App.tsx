@@ -194,6 +194,17 @@ function App() {
     setShowSubscriptionModal(true);
   };
 
+  // Handle viewing last analysis from landing page
+  const handleViewLastAnalysisFromLanding = (resumeData: any) => {
+    if (resumeData?.analysisResults) {
+      setAnalysisResults(resumeData.analysisResults);
+      setCurrentState('results');
+    } else {
+      // If no analysis results, go to upload page
+      setCurrentState('upload');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -208,7 +219,12 @@ function App() {
   const renderCurrentState = () => {
     switch (currentState) {
       case 'landing':
-        return <LandingPage onGetStarted={handleGetStarted} />;
+        return (
+          <LandingPage 
+            onGetStarted={handleGetStarted}
+            onViewLastAnalysis={handleViewLastAnalysisFromLanding}
+          />
+        );
       case 'upload':
         return (
           <UploadPage 

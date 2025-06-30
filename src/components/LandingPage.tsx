@@ -1,11 +1,60 @@
-import React from 'react';
-import { FileText, Zap, Target, Users, ArrowRight, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Zap, Target, Users, ArrowRight, CheckCircle, Eye, Calendar } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
+import LastAnalysisModal from './LastAnalysisModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+  const { user } = useAuth();
+  const { subscription } = useSubscription();
+  const [lastResumeData, setLastResumeData] = useState<any>(null);
+  const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
+
+  // Check for last resume data when component mounts
+  useEffect(() => {
+    if (user && !subscription?.isPremium && !subscription?.isAdmin) {
+      const storedResumeData = sessionStorage.getItem('currentResume');
+      if (storedResumeData) {
+        try {
+          const resumeData = JSON.parse(storedResumeData);
+          setLastResumeData(resumeData);
+        } catch (error) {
+          console.error('Error parsing stored resume data:', error);
+        }
+      }
+    }
+  }, [user, subscription]);
+
+  const handleViewLastAnalysis = () => {
+    setShowLastAnalysisModal(false);
+    // Navigate to results if analysis exists, otherwise to upload
+    if (lastResumeData?.analysisResults) {
+      // This would need to be passed up to App component to set the analysis results
+      // For now, we'll just show the modal
+      setShowLastAnalysisModal(true);
+    } else {
+      onGetStarted();
+    }
+  };
+
+  const handleUpgradeFromModal = () => {
+    setShowLastAnalysisModal(false);
+    // This would trigger the subscription modal
+    // For now, we'll just close the modal
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   const features = [
     {
       icon: <FileText className="w-8 h-8 text-gray-600" />,
@@ -51,18 +100,58 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               Get instant, professional feedback on your resume. Our AI analyzes structure, content, 
               and keywords to help you land more interviews and your dream job.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <button
                 onClick={onGetStarted}
                 className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
               >
-                Analyze My Resume
+                {user ? 'Analyze New Resume' : 'Analyze My Resume'}
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button className="bg-white text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-colors">
                 See Example Analysis
               </button>
             </div>
+
+            {/* Last Resume Analysis Button for Free Users */}
+            {user && !subscription?.isPremium && !subscription?.isAdmin && lastResumeData && (
+              <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <FileText className="w-6 h-6 text-green-600 mr-3" />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-gray-900">Your Last Resume</h3>
+                      <p className="text-sm text-gray-500">
+                        {lastResumeData.filename}
+                      </p>
+                    </div>
+                  </div>
+                  {lastResumeData.analysisResults && (
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-600">
+                        {lastResumeData.analysisResults.overall_score}
+                      </div>
+                      <div className="text-xs text-gray-500">Score</div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center text-sm text-gray-500 mb-4">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  <span>Analyzed on {formatDate(lastResumeData.created_at)}</span>
+                </div>
+                
+                <button
+                  onClick={() => setShowLastAnalysisModal(true)}
+                  className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Last Analysis
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -151,6 +240,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           </button>
         </div>
       </div>
+
+      {/* Last Analysis Modal */}
+      {showLastAnalysisModal && lastResumeData && (
+        <LastAnalysisModal
+          onClose={() => setShowLastAnalysisModal(false)}
+          onViewAnalysis={handleViewLastAnalysis}
+          onUpgrade={handleUpgradeFromModal}
+          resumeData={lastResumeData}
+        />
+      )}
     </div>
   );
 };
