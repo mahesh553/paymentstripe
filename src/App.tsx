@@ -21,7 +21,7 @@ function App() {
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
   const [lastResumeData, setLastResumeData] = useState(null);
   const { user, loading } = useAuth();
-  const { subscription, trackFeatureUsage, getRemainingUsage, refreshSubscription } = useSubscription();
+  const { subscription, trackFeatureUsage, getRemainingUsage, refreshSubscription, getUsageLimit } = useSubscription();
 
   // Reset to landing page when user logs out
   useEffect(() => {
@@ -39,17 +39,27 @@ function App() {
   // Check for existing resume data and quota status when user logs in
   useEffect(() => {
     const checkUserResumeStatus = async () => {
-      if (!user || !subscription) return;
+      if (!user || !subscription || loading) return;
+
+      console.log('Checking user resume status...', { 
+        user: user.email, 
+        subscription: subscription.planType,
+        isPremium: subscription.isPremium,
+        isAdmin: subscription.isAdmin
+      });
 
       // Refresh subscription data to get latest usage
       await refreshSubscription();
 
       // Get the last resume data from session storage
       const storedResumeData = sessionStorage.getItem('currentResume');
+      console.log('Stored resume data:', !!storedResumeData);
+      
       if (storedResumeData) {
         try {
           const resumeData = JSON.parse(storedResumeData);
           setLastResumeData(resumeData);
+          console.log('Resume data loaded:', resumeData.filename);
         } catch (error) {
           console.error('Error parsing stored resume data:', error);
         }
@@ -57,18 +67,38 @@ function App() {
 
       // Check if user has exhausted their quota
       const remainingAnalyses = getRemainingUsage('resume_analysis');
+      const totalLimit = getUsageLimit('resume_analysis');
+      const usedAnalyses = totalLimit > 0 ? totalLimit - remainingAnalyses : 0;
       
+      console.log('Usage check:', { 
+        remainingAnalyses, 
+        totalLimit, 
+        usedAnalyses,
+        isPremium: subscription.isPremium,
+        isAdmin: subscription.isAdmin
+      });
+
       // If user is free tier, has no remaining analyses, and has previous resume data
       if (!subscription.isPremium && !subscription.isAdmin && remainingAnalyses === 0 && storedResumeData) {
+        console.log('Showing last analysis modal for free user with exhausted quota');
         // Show modal asking if they want to see their last analysis
         setShowLastAnalysisModal(true);
+      } else {
+        console.log('Not showing modal:', {
+          isPremium: subscription.isPremium,
+          isAdmin: subscription.isAdmin,
+          remainingAnalyses,
+          hasStoredData: !!storedResumeData
+        });
       }
     };
 
-    if (user && subscription && currentState === 'landing') {
-      checkUserResumeStatus();
+    // Only check when user first lands on the app (currentState is 'landing')
+    if (user && subscription && currentState === 'landing' && !loading) {
+      // Add a small delay to ensure all context is loaded
+      setTimeout(checkUserResumeStatus, 500);
     }
-  }, [user, subscription, getRemainingUsage, refreshSubscription, currentState]);
+  }, [user, subscription, getRemainingUsage, getUsageLimit, refreshSubscription, currentState, loading]);
 
   // Handle pending analysis after subscription modal closes
   useEffect(() => {
@@ -144,6 +174,8 @@ function App() {
 
   const handleLastAnalysisModalClose = () => {
     setShowLastAnalysisModal(false);
+    // After closing the modal, go to upload page
+    setCurrentState('upload');
   };
 
   const handleViewLastAnalysis = () => {

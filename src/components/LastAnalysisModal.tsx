@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Crown, Eye, Calendar, BarChart3, TrendingUp, Star } from 'lucide-react';
+import { FileText, Crown, Eye, Calendar, BarChart3, TrendingUp, Star, X } from 'lucide-react';
 
 interface LastAnalysisModalProps {
   onClose: () => void;
@@ -44,14 +44,22 @@ const LastAnalysisModal: React.FC<LastAnalysisModalProps> = ({
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
-          <div className="flex items-center">
-            <FileText className="w-8 h-8 mr-3" />
-            <div>
-              <h2 className="text-2xl font-bold">Welcome Back!</h2>
-              <p className="text-green-100 mt-1">
-                You've reached your free analysis limit. Here's your last resume analysis.
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FileText className="w-8 h-8 mr-3" />
+              <div>
+                <h2 className="text-2xl font-bold">Welcome Back!</h2>
+                <p className="text-green-100 mt-1">
+                  You've reached your free analysis limit. Here's your last resume analysis.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="text-white hover:text-gray-200 transition-colors p-1 hover:bg-green-500 rounded"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </div>
 
