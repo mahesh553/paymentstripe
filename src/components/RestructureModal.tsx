@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle, AlertTriangle, Star, ArrowRight, Copy, Download, Zap, RefreshCw } from 'lucide-react';
 import { generateRestructureSuggestions } from '../services/geminiService';
 import { useSubscription } from '../context/SubscriptionContext';
