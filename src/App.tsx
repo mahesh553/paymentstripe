@@ -34,6 +34,20 @@ function App() {
     }
   }, [user, loading]);
 
+  // Listen for custom event to view last analysis results
+  useEffect(() => {
+    const handleViewLastAnalysis = (event: CustomEvent) => {
+      setAnalysisResults(event.detail);
+      setCurrentState('results');
+    };
+
+    window.addEventListener('viewLastAnalysis', handleViewLastAnalysis as EventListener);
+    
+    return () => {
+      window.removeEventListener('viewLastAnalysis', handleViewLastAnalysis as EventListener);
+    };
+  }, []);
+
   // Handle pending analysis after subscription modal closes
   useEffect(() => {
     if (pendingAnalysis && !showSubscriptionModal) {

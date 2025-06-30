@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, X, Check, AlertCircle, Crown, Lock } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Crown, Lock, Eye, BarChart3 } from 'lucide-react';
 import { validateFile, extractTextFromFile } from '../services/fileExtractor';
 import { uploadResume, createResumeRecord, getUserResumes } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,6 @@ import SubscriptionModal from './SubscriptionModal';
 
 interface UploadPageProps {
   onFileUploaded: () => void;
-  lastResumeData?: any;
   isQuotaExhausted?: boolean;
 }
 
@@ -224,6 +223,27 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
     }
   };
 
+  const handleViewLastResults = () => {
+    if (!lastResumeData) return;
+
+    // Store the resume data in session storage
+    sessionStorage.setItem('currentResume', JSON.stringify({
+      ...lastResumeData,
+      text: lastResumeData.original_text || lastResumeData.text
+    }));
+
+    // If analysis results exist, go directly to results
+    if (lastResumeData.analysisResults) {
+      // Trigger the analysis complete flow with existing results
+      window.dispatchEvent(new CustomEvent('viewLastAnalysis', { 
+        detail: lastResumeData.analysisResults 
+      }));
+    } else {
+      // If no analysis results, start new analysis
+      onFileUploaded();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -265,7 +285,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
           </div>
         )}
 
-        {/* Previous Resume Display */}
+        {/* Previous Resume Analysis Display */}
         {lastResumeData && isQuotaExhausted && (
           <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Previous Resume Analysis</h3>
@@ -279,18 +299,48 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
                   </p>
                 </div>
               </div>
-              {lastResumeData.analysisResults && (
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">
-                    {lastResumeData.analysisResults.overall_score}
+              <div className="flex items-center space-x-3">
+                {lastResumeData.analysisResults && (
+                  <div className="text-right mr-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {lastResumeData.analysisResults.overall_score}
+                    </div>
+                    <div className="text-sm text-gray-500">Overall Score</div>
                   </div>
-                  <div className="text-sm text-gray-500">Overall Score</div>
-                </div>
-              )}
+                )}
+                <button
+                  onClick={handleViewLastResults}
+                  disabled={loadingLastResume}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
+                >
+                  {loadingLastResume ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      {lastResumeData.analysisResults ? (
+                        <>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          View Results
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Analyze Resume
+                        </>
+                      )}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             <p className="text-gray-600 mt-4">
-              This is your most recent resume analysis. To upload a new resume and get fresh insights, 
-              please upgrade to Premium.
+              {lastResumeData.analysisResults 
+                ? 'View your previous analysis results or upgrade to Premium for unlimited new analyses.'
+                : 'This resume hasn\'t been analyzed yet. Click "Analyze Resume" to get insights, or upgrade to Premium for unlimited analyses.'
+              }
             </p>
           </div>
         )}
@@ -314,23 +364,35 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhauste
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleAnalyzeLastResume}
-                disabled={loadingLastResume}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
-              >
-                {loadingLastResume ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Analyze This Resume
-                  </>
+              <div className="flex items-center space-x-3">
+                {lastResumeData.analysisResults && (
+                  <button
+                    onClick={handleViewLastResults}
+                    disabled={loadingLastResume}
+                    className="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    View Results
+                  </button>
                 )}
-              </button>
+                <button
+                  onClick={handleAnalyzeLastResume}
+                  disabled={loadingLastResume}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
+                >
+                  {loadingLastResume ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      {lastResumeData.analysisResults ? 'Re-analyze' : 'Analyze This Resume'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             <p className="text-sm text-green-700 mt-3">
               💡 Skip the upload step and analyze your most recent resume directly from our database.
