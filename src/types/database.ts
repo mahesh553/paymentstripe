@@ -136,7 +136,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_subscription_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          subscription_tier: string
+          is_active: boolean
+          current_period_end: string | null
+        }
+      }
+      get_feature_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          daily_limit: number
+          monthly_limit: number
+          current_daily_usage: number
+          current_monthly_usage: number
+          can_use_feature: boolean
+        }
+      }
+      track_feature_usage: {
+        Args: {
+          feature_name: string
+        }
+        Returns: {
+          success: boolean
+          new_daily_count: number
+          new_monthly_count: number
+        }
+      }
+      debug_user_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          subscription_tier: string
+          daily_usage: number
+          monthly_usage: number
+          last_reset: string | null
+        }
+      }
     }
     Enums: {
       [_ in never]: never
