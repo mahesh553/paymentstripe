@@ -355,7 +355,7 @@ CREATE POLICY IF NOT EXISTS "Users can insert own analyses" ON analyses FOR INSE
   )
 );
 
-CREATE POLICY "Users can read own job matches" ON job_matches FOR SELECT TO authenticated USING (
+CREATE POLICY IF NOT EXISTS "Users can read own job matches" ON job_matches FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
@@ -363,7 +363,7 @@ CREATE POLICY "Users can read own job matches" ON job_matches FOR SELECT TO auth
   )
 );
 
-CREATE POLICY "Users can insert own job matches" ON job_matches FOR INSERT TO authenticated WITH CHECK (
+CREATE POLICY IF NOT EXISTS "Users can insert own job matches" ON job_matches FOR INSERT TO authenticated WITH CHECK (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
