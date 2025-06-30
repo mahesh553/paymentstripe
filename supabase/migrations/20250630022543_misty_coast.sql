@@ -312,7 +312,7 @@ CREATE POLICY IF NOT EXISTS "Users can read own usage" ON xxpj_usage FOR SELECT 
 CREATE POLICY "Users can insert own usage" ON xxpj_usage FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can read own usage tracking" ON xxpj_usage_tracking FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can read own usage tracking" ON xxpj_usage_tracking FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY IF NOT EXISTS "Users can insert own usage tracking" ON xxpj_usage_tracking FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own usage tracking" ON xxpj_usage_tracking FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
