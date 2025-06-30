@@ -54,7 +54,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       let statusData = null;
       try {
         const { data, error } = await supabase
-          .rpc('get_user_subscription_status', { user_uuid: user.id });
+          .rpc('get_user_subscription_status');
 
         if (error) {
           console.error('Error fetching subscription status:', error);
