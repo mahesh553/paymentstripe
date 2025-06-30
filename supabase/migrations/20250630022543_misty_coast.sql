@@ -329,7 +329,7 @@ CREATE POLICY IF NOT EXISTS "Users can read own analyses" ON analyses FOR SELECT
   )
 );
 
-CREATE POLICY "Users can insert own analyses" ON analyses FOR INSERT TO authenticated WITH CHECK (
+CREATE POLICY IF NOT EXISTS "Users can insert own analyses" ON analyses FOR INSERT TO authenticated WITH CHECK (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
