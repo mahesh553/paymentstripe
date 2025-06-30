@@ -6,9 +6,10 @@ import LastAnalysisModal from './LastAnalysisModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onViewLastAnalysis?: (resumeData: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnalysis }) => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
   const [lastResumeData, setLastResumeData] = useState<any>(null);
@@ -22,6 +23,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
         try {
           const resumeData = JSON.parse(storedResumeData);
           setLastResumeData(resumeData);
+          console.log('Last resume data loaded on landing page:', resumeData.filename);
         } catch (error) {
           console.error('Error parsing stored resume data:', error);
         }
@@ -30,21 +32,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
   }, [user, subscription]);
 
   const handleViewLastAnalysis = () => {
-    setShowLastAnalysisModal(false);
-    // Navigate to results if analysis exists, otherwise to upload
-    if (lastResumeData?.analysisResults) {
-      // This would need to be passed up to App component to set the analysis results
-      // For now, we'll just show the modal
-      setShowLastAnalysisModal(true);
+    if (onViewLastAnalysis && lastResumeData) {
+      onViewLastAnalysis(lastResumeData);
     } else {
-      onGetStarted();
+      setShowLastAnalysisModal(true);
     }
   };
 
   const handleUpgradeFromModal = () => {
     setShowLastAnalysisModal(false);
     // This would trigger the subscription modal
-    // For now, we'll just close the modal
+  };
+
+  const handleViewAnalysisFromModal = () => {
+    setShowLastAnalysisModal(false);
+    if (onViewLastAnalysis && lastResumeData) {
+      onViewLastAnalysis(lastResumeData);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -115,15 +119,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               </button>
             </div>
 
-            {/* Last Resume Analysis Button for Free Users */}
+            {/* Last Resume Analysis Card for Free Users */}
             {user && !subscription?.isPremium && !subscription?.isAdmin && lastResumeData && (
-              <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto border border-gray-200">
+              <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto border border-gray-200 mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     <FileText className="w-6 h-6 text-green-600 mr-3" />
                     <div className="text-left">
                       <h3 className="font-semibold text-gray-900">Your Last Resume</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 truncate max-w-48">
                         {lastResumeData.filename}
                       </p>
                     </div>
@@ -144,12 +148,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 </div>
                 
                 <button
-                  onClick={() => setShowLastAnalysisModal(true)}
-                  className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center"
+                  onClick={handleViewLastAnalysis}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   View Last Analysis
                 </button>
+                
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Free users get 1 analysis per month
+                </p>
               </div>
             )}
           </div>
@@ -245,7 +253,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       {showLastAnalysisModal && lastResumeData && (
         <LastAnalysisModal
           onClose={() => setShowLastAnalysisModal(false)}
-          onViewAnalysis={handleViewLastAnalysis}
+          onViewAnalysis={handleViewAnalysisFromModal}
           onUpgrade={handleUpgradeFromModal}
           resumeData={lastResumeData}
         />
