@@ -309,7 +309,7 @@ END $$;
 
 -- Create RLS Policies
 CREATE POLICY IF NOT EXISTS "Users can view their own profile" ON xxpj_users FOR SELECT TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Users can update their own profile" ON xxpj_users FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY IF NOT EXISTS "Users can update their own profile" ON xxpj_users FOR UPDATE TO authenticated USING (auth.uid() = id);
 CREATE POLICY "Users can insert their own profile" ON xxpj_users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can delete their own profile" ON xxpj_users FOR DELETE TO authenticated USING (auth.uid() = id);
 
