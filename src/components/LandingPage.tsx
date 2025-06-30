@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Zap, Target, Users, ArrowRight, CheckCircle, Eye, Calendar } from 'lucide-react';
+import { FileText, Zap, Target, Users, ArrowRight, CheckCircle, Eye, Calendar, Crown, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import LastAnalysisModal from './LastAnalysisModal';
+import SubscriptionModal from './SubscriptionModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -11,9 +12,10 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnalysis }) => {
   const { user } = useAuth();
-  const { subscription } = useSubscription();
+  const { subscription, getRemainingUsage } = useSubscription();
   const [lastResumeData, setLastResumeData] = useState<any>(null);
   const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Check for last resume data when component mounts
   useEffect(() => {
@@ -41,7 +43,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
 
   const handleUpgradeFromModal = () => {
     setShowLastAnalysisModal(false);
-    // This would trigger the subscription modal
+    setShowUpgradeModal(true);
   };
 
   const handleViewAnalysisFromModal = () => {
@@ -90,11 +92,48 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
     "Skills gap analysis and suggestions"
   ];
 
+  // Check if user has exhausted their quota
+  const remainingAnalyses = getRemainingUsage('resume_analysis');
+  const isQuotaExhausted = user && !subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0;
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          {/* Quota Exhausted Banner for Free Users with Last Resume */}
+          {isQuotaExhausted && lastResumeData && (
+            <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Lock className="w-6 h-6 text-red-600 mr-3" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-900">Free Analysis Limit Reached</h3>
+                    <p className="text-red-700 mt-1">
+                      You've used your free monthly analysis. Upgrade to Premium for 20 analyses per day.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={handleViewLastAnalysis}
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Last Analysis
+                  </button>
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center"
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    Upgrade Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Perfect Your Resume with
@@ -120,7 +159,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
             </div>
 
             {/* Last Resume Analysis Card for Free Users */}
-            {user && !subscription?.isPremium && !subscription?.isAdmin && lastResumeData && (
+            {user && !subscription?.isPremium && !subscription?.isAdmin && lastResumeData && !isQuotaExhausted && (
               <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto border border-gray-200 mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
@@ -256,6 +295,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
           onViewAnalysis={handleViewAnalysisFromModal}
           onUpgrade={handleUpgradeFromModal}
           resumeData={lastResumeData}
+        />
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <SubscriptionModal
+          onClose={() => setShowUpgradeModal(false)}
+          feature="resume_analysis"
+          title="Upgrade to Continue"
+          description="You've reached your free analysis limit. Upgrade to get 20 analyses per day."
         />
       )}
     </div>
