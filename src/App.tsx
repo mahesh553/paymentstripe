@@ -17,8 +17,9 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
+  const [lastResumeData, setLastResumeData] = useState(null);
   const { user, loading } = useAuth();
-  const { subscription, trackFeatureUsage } = useSubscription();
+  const { subscription, trackFeatureUsage, getRemainingUsage } = useSubscription();
 
   // Reset to landing page when user logs out
   useEffect(() => {
@@ -28,8 +29,52 @@ function App() {
       setShowAuthModal(false);
       setShowSubscriptionModal(false);
       setPendingAnalysis(false);
+      setLastResumeData(null);
     }
   }, [user, loading]);
+
+  // Check for existing resume data and quota status when user logs in
+  useEffect(() => {
+    const checkUserResumeStatus = async () => {
+      if (!user || !subscription) return;
+
+      // Get the last resume data from session storage
+      const storedResumeData = sessionStorage.getItem('currentResume');
+      if (storedResumeData) {
+        try {
+          const resumeData = JSON.parse(storedResumeData);
+          setLastResumeData(resumeData);
+        } catch (error) {
+          console.error('Error parsing stored resume data:', error);
+        }
+      }
+
+      // Check if user has exhausted their quota
+      const remainingAnalyses = getRemainingUsage('resume_analysis');
+      
+      // If user is free tier, has no remaining analyses, and has previous resume data
+      if (!subscription.isPremium && remainingAnalyses === 0 && storedResumeData) {
+        // Parse the stored resume data to get analysis results
+        try {
+          const resumeData = JSON.parse(storedResumeData);
+          if (resumeData.analysisResults) {
+            setAnalysisResults(resumeData.analysisResults);
+            setCurrentState('results');
+          } else {
+            // If no analysis results, redirect to upload but show quota exhausted state
+            setCurrentState('upload');
+          }
+        } catch (error) {
+          console.error('Error parsing resume data:', error);
+          setCurrentState('upload');
+        }
+      }
+    };
+
+    if (user && subscription && currentState === 'landing') {
+      checkUserResumeStatus();
+    }
+  }, [user, subscription, getRemainingUsage, currentState]);
 
   // Handle pending analysis after subscription modal closes
   useEffect(() => {
@@ -37,7 +82,6 @@ function App() {
       setPendingAnalysis(false);
       
       // Only proceed with analysis if user has upgraded to premium
-      // This is the key change - we check subscription status again
       if (subscription?.isPremium) {
         setCurrentState('analyzing');
       } else {
@@ -49,7 +93,20 @@ function App() {
 
   const handleGetStarted = () => {
     if (user) {
-      setCurrentState('upload');
+      // Check quota status before deciding where to go
+      const remainingAnalyses = getRemainingUsage('resume_analysis');
+      
+      if (!subscription?.isPremium && remainingAnalyses === 0 && lastResumeData) {
+        // User has exhausted quota and has previous data, go to results
+        if (lastResumeData.analysisResults) {
+          setAnalysisResults(lastResumeData.analysisResults);
+          setCurrentState('results');
+        } else {
+          setCurrentState('upload');
+        }
+      } else {
+        setCurrentState('upload');
+      }
     } else {
       setShowAuthModal(true);
     }
@@ -75,6 +132,19 @@ function App() {
   const handleAnalysisComplete = (results: any) => {
     setAnalysisResults(results);
     setCurrentState('results');
+    
+    // Store analysis results with resume data for future reference
+    const storedResumeData = sessionStorage.getItem('currentResume');
+    if (storedResumeData) {
+      try {
+        const resumeData = JSON.parse(storedResumeData);
+        resumeData.analysisResults = results;
+        sessionStorage.setItem('currentResume', JSON.stringify(resumeData));
+        setLastResumeData(resumeData);
+      } catch (error) {
+        console.error('Error storing analysis results:', error);
+      }
+    }
   };
 
   const handleBackToUpload = () => {
@@ -89,7 +159,6 @@ function App() {
 
   const handleSubscriptionModalClose = () => {
     setShowSubscriptionModal(false);
-    // Don't reset pendingAnalysis here - let the useEffect handle it
   };
 
   if (loading) {
@@ -108,7 +177,13 @@ function App() {
       case 'landing':
         return <LandingPage onGetStarted={handleGetStarted} />;
       case 'upload':
-        return <UploadPage onFileUploaded={handleFileUploaded} />;
+        return (
+          <UploadPage 
+            onFileUploaded={handleFileUploaded}
+            lastResumeData={lastResumeData}
+            isQuotaExhausted={!subscription?.isPremium && getRemainingUsage('resume_analysis') === 0}
+          />
+        );
       case 'analyzing':
         return <LoadingAnalysis onComplete={handleAnalysisComplete} />;
       case 'results':

@@ -1,23 +1,37 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, X, Check, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, Check, AlertCircle, Crown, Lock } from 'lucide-react';
 import { validateFile, extractTextFromFile } from '../services/fileExtractor';
 import { uploadResume, createResumeRecord } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import UserMenu from './UserMenu';
+import SubscriptionModal from './SubscriptionModal';
 
 interface UploadPageProps {
   onFileUploaded: () => void;
+  lastResumeData?: any;
+  isQuotaExhausted?: boolean;
 }
 
-const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
+const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData, isQuotaExhausted }) => {
   const { user } = useAuth();
+  const { subscription, getRemainingUsage } = useSubscription();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const remainingAnalyses = getRemainingUsage('resume_analysis');
+  const canUpload = subscription?.isPremium || remainingAnalyses > 0;
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (!canUpload) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     const file = acceptedFiles[0];
     if (!file) return;
 
@@ -30,7 +44,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
     setUploadedFile(file);
     setUploadError(null);
     setUploadSuccess(false);
-  }, []);
+  }, [canUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -40,11 +54,12 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
       'text/plain': ['.txt']
     },
     multiple: false,
-    maxSize: 10 * 1024 * 1024 // 10MB
+    maxSize: 10 * 1024 * 1024, // 10MB
+    disabled: !canUpload
   });
 
   const handleUpload = async () => {
-    if (!uploadedFile || !user) return;
+    if (!uploadedFile || !user || !canUpload) return;
 
     setUploading(true);
     setUploadError(null);
@@ -103,6 +118,10 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
     setUploadSuccess(false);
   };
 
+  const handleUpgradeClick = () => {
+    setShowUpgradeModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -120,12 +139,69 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Quota Status Banner */}
+        {isQuotaExhausted && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Lock className="w-6 h-6 text-red-600 mr-3" />
+                <div>
+                  <h3 className="text-lg font-semibold text-red-900">Free Analysis Limit Reached</h3>
+                  <p className="text-red-700 mt-1">
+                    You've used your free monthly analysis. Upgrade to Premium for 20 analyses per day.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleUpgradeClick}
+                className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center"
+              >
+                <Crown className="w-4 h-4 mr-2" />
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Previous Resume Display */}
+        {lastResumeData && isQuotaExhausted && (
+          <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Previous Resume Analysis</h3>
+            <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="w-8 h-8 text-green-600 mr-3" />
+                <div>
+                  <p className="font-medium text-gray-900">{lastResumeData.filename}</p>
+                  <p className="text-sm text-gray-500">
+                    Analyzed on {new Date(lastResumeData.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              {lastResumeData.analysisResults && (
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-green-600">
+                    {lastResumeData.analysisResults.overall_score}
+                  </div>
+                  <div className="text-sm text-gray-500">Overall Score</div>
+                </div>
+              )}
+            </div>
+            <p className="text-gray-600 mt-4">
+              This is your most recent resume analysis. To upload a new resume and get fresh insights, 
+              please upgrade to Premium.
+            </p>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Upload Your Resume
+            {isQuotaExhausted ? 'Upgrade to Upload New Resume' : 'Upload Your Resume'}
           </h2>
           <p className="text-lg text-gray-600">
-            Upload your resume to get instant AI-powered analysis and recommendations
+            {isQuotaExhausted 
+              ? 'Get unlimited access to upload and analyze new resumes with Premium'
+              : 'Upload your resume to get instant AI-powered analysis and recommendations'
+            }
           </p>
         </div>
 
@@ -133,25 +209,49 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
           {!uploadedFile ? (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'
+              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                !canUpload
+                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                  : isDragActive
+                    ? 'border-green-500 bg-green-50 cursor-pointer'
+                    : 'border-gray-300 hover:border-green-400 hover:bg-gray-50 cursor-pointer'
               }`}
             >
-              <input {...getInputProps()} />
-              <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {isDragActive ? 'Drop your resume here' : 'Drop your resume here, or click to browse'}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Supports PDF, DOCX, and TXT files up to 10MB
-              </p>
-              <div className="flex justify-center space-x-4 text-sm text-gray-500">
-                <span className="bg-gray-100 px-3 py-1 rounded">PDF</span>
-                <span className="bg-gray-100 px-3 py-1 rounded">DOCX</span>
-                <span className="bg-gray-100 px-3 py-1 rounded">TXT</span>
-              </div>
+              <input {...getInputProps()} disabled={!canUpload} />
+              
+              {!canUpload ? (
+                <>
+                  <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-500 mb-2">
+                    Upload Locked - Upgrade Required
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    You've reached your free analysis limit. Upgrade to Premium to upload new resumes.
+                  </p>
+                  <button
+                    onClick={handleUpgradeClick}
+                    className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-flex items-center"
+                  >
+                    <Crown className="w-5 h-5 mr-2" />
+                    Upgrade to Premium
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    {isDragActive ? 'Drop your resume here' : 'Drop your resume here, or click to browse'}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Supports PDF, DOCX, and TXT files up to 10MB
+                  </p>
+                  <div className="flex justify-center space-x-4 text-sm text-gray-500">
+                    <span className="bg-gray-100 px-3 py-1 rounded">PDF</span>
+                    <span className="bg-gray-100 px-3 py-1 rounded">DOCX</span>
+                    <span className="bg-gray-100 px-3 py-1 rounded">TXT</span>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
@@ -196,7 +296,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
                 <div className="text-center">
                   <button
                     onClick={handleUpload}
-                    disabled={uploading}
+                    disabled={uploading || !canUpload}
                     className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {uploading ? (
@@ -213,6 +313,18 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
             </div>
           )}
         </div>
+
+        {/* Usage Indicator */}
+        {!subscription?.isPremium && (
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center bg-white rounded-lg px-4 py-2 border border-gray-200">
+              <span className="text-sm text-gray-600 mr-2">Free Plan:</span>
+              <span className={`font-semibold ${remainingAnalyses > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {Math.max(0, remainingAnalyses)}/1 analyses remaining this month
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Info Section */}
         <div className="mt-12 grid md:grid-cols-3 gap-8">
@@ -245,6 +357,16 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded }) => {
           </div>
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <SubscriptionModal
+          onClose={() => setShowUpgradeModal(false)}
+          feature="resume_analysis"
+          title="Upgrade to Upload New Resume"
+          description="You've reached your free analysis limit. Upgrade to Premium for 20 analyses per day and unlimited resume uploads."
+        />
+      )}
     </div>
   );
 };
