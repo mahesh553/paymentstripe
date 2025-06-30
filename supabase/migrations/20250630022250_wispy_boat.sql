@@ -301,7 +301,7 @@ CREATE POLICY IF NOT EXISTS "Users can update own subscriptions" ON xxpj_subscri
 
 CREATE POLICY IF NOT EXISTS "Users can read own usage" ON xxpj_usage FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own usage" ON xxpj_usage FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY IF NOT EXISTS "Users can update own usage" ON xxpj_usage FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 
 CREATE POLICY IF NOT EXISTS "Users can read own resumes" ON resumes FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 CREATE POLICY "Users can insert own resumes" ON resumes FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
