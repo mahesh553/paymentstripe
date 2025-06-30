@@ -19,7 +19,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
 
   // Check for last resume data when component mounts
   useEffect(() => {
-    if (user && !subscription?.isPremium && !subscription?.isAdmin) {
+    if (user) {
       const storedResumeData = sessionStorage.getItem('currentResume');
       if (storedResumeData) {
         try {
@@ -31,7 +31,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
         }
       }
     }
-  }, [user, subscription]);
+  }, [user]);
 
   const handleViewLastAnalysis = () => {
     if (onViewLastAnalysis && lastResumeData) {
@@ -95,6 +95,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
   // Check if user has exhausted their quota
   const remainingAnalyses = getRemainingUsage('resume_analysis');
   const isQuotaExhausted = user && !subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0;
+  const hasLastResumeData = !!lastResumeData;
+
+  console.log('Landing page state:', {
+    user: !!user,
+    isPremium: subscription?.isPremium,
+    isAdmin: subscription?.isAdmin,
+    remainingAnalyses,
+    isQuotaExhausted,
+    hasLastResumeData,
+    lastResumeFilename: lastResumeData?.filename
+  });
 
   return (
     <div className="min-h-screen">
@@ -102,7 +113,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
       <div className="relative overflow-hidden bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           {/* Quota Exhausted Banner for Free Users with Last Resume */}
-          {isQuotaExhausted && lastResumeData && (
+          {isQuotaExhausted && hasLastResumeData && (
             <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -159,7 +170,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
             </div>
 
             {/* Last Resume Analysis Card for Free Users */}
-            {user && !subscription?.isPremium && !subscription?.isAdmin && lastResumeData && !isQuotaExhausted && (
+            {user && !subscription?.isPremium && !subscription?.isAdmin && hasLastResumeData && !isQuotaExhausted && (
               <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto border border-gray-200 mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
