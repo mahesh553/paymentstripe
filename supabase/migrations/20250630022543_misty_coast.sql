@@ -321,7 +321,7 @@ CREATE POLICY IF NOT EXISTS "Users can insert own resumes" ON resumes FOR INSERT
 CREATE POLICY IF NOT EXISTS "Users can update own resumes" ON resumes FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 CREATE POLICY IF NOT EXISTS "Users can delete own resumes" ON resumes FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM xxpj_users WHERE id = auth.uid()));
 
-CREATE POLICY "Users can read own analyses" ON analyses FOR SELECT TO authenticated USING (
+CREATE POLICY IF NOT EXISTS "Users can read own analyses" ON analyses FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM resumes r
     JOIN xxpj_users u ON r.user_id = u.id
