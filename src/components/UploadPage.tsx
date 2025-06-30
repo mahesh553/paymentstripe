@@ -16,7 +16,7 @@ interface UploadPageProps {
 
 const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData, isQuotaExhausted }) => {
   const { user } = useAuth();
-  const { subscription, getRemainingUsage } = useSubscription();
+  const { subscription, getRemainingUsage, getUsageLimit } = useSubscription();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -24,7 +24,9 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const remainingAnalyses = getRemainingUsage('resume_analysis');
-  const canUpload = subscription?.isPremium || remainingAnalyses > 0;
+  const totalLimit = getUsageLimit('resume_analysis');
+  const usedAnalyses = totalLimit > 0 ? totalLimit - remainingAnalyses : 0;
+  const canUpload = subscription?.isPremium || subscription?.isAdmin || remainingAnalyses > 0;
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!canUpload) {
@@ -315,12 +317,12 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
         </div>
 
         {/* Usage Indicator */}
-        {!subscription?.isPremium && (
+        {!subscription?.isPremium && !subscription?.isAdmin && (
           <div className="mt-8 text-center">
             <div className="inline-flex items-center bg-white rounded-lg px-4 py-2 border border-gray-200">
               <span className="text-sm text-gray-600 mr-2">Free Plan:</span>
               <span className={`font-semibold ${remainingAnalyses > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {Math.max(0, remainingAnalyses)}/1 analyses remaining this month
+                {usedAnalyses}/{totalLimit > 0 ? totalLimit : 1} analyses used this month
               </span>
             </div>
           </div>

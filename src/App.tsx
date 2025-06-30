@@ -21,7 +21,7 @@ function App() {
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
   const [lastResumeData, setLastResumeData] = useState(null);
   const { user, loading } = useAuth();
-  const { subscription, trackFeatureUsage, getRemainingUsage } = useSubscription();
+  const { subscription, trackFeatureUsage, getRemainingUsage, refreshSubscription } = useSubscription();
 
   // Reset to landing page when user logs out
   useEffect(() => {
@@ -41,6 +41,9 @@ function App() {
     const checkUserResumeStatus = async () => {
       if (!user || !subscription) return;
 
+      // Refresh subscription data to get latest usage
+      await refreshSubscription();
+
       // Get the last resume data from session storage
       const storedResumeData = sessionStorage.getItem('currentResume');
       if (storedResumeData) {
@@ -56,7 +59,7 @@ function App() {
       const remainingAnalyses = getRemainingUsage('resume_analysis');
       
       // If user is free tier, has no remaining analyses, and has previous resume data
-      if (!subscription.isPremium && remainingAnalyses === 0 && storedResumeData) {
+      if (!subscription.isPremium && !subscription.isAdmin && remainingAnalyses === 0 && storedResumeData) {
         // Show modal asking if they want to see their last analysis
         setShowLastAnalysisModal(true);
       }
@@ -65,7 +68,7 @@ function App() {
     if (user && subscription && currentState === 'landing') {
       checkUserResumeStatus();
     }
-  }, [user, subscription, getRemainingUsage, currentState]);
+  }, [user, subscription, getRemainingUsage, refreshSubscription, currentState]);
 
   // Handle pending analysis after subscription modal closes
   useEffect(() => {
@@ -179,7 +182,7 @@ function App() {
           <UploadPage 
             onFileUploaded={handleFileUploaded}
             lastResumeData={lastResumeData}
-            isQuotaExhausted={!subscription?.isPremium && getRemainingUsage('resume_analysis') === 0}
+            isQuotaExhausted={!subscription?.isPremium && !subscription?.isAdmin && getRemainingUsage('resume_analysis') === 0}
           />
         );
       case 'analyzing':
