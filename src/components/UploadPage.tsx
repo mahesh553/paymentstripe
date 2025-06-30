@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, X, Check, AlertCircle, Crown, Lock } from 'lucide-react';
 import { validateFile, extractTextFromFile } from '../services/fileExtractor';
-import { uploadResume, createResumeRecord } from '../lib/supabase';
+import { uploadResume, createResumeRecord, getUserResumes } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import UserMenu from './UserMenu';
@@ -14,7 +14,7 @@ interface UploadPageProps {
   isQuotaExhausted?: boolean;
 }
 
-const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData, isQuotaExhausted }) => {
+const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, isQuotaExhausted }) => {
   const { user } = useAuth();
   const { subscription, getRemainingUsage, getUsageLimit } = useSubscription();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -22,11 +22,74 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [lastResumeData, setLastResumeData] = useState<any>(null);
+  const [loadingLastResume, setLoadingLastResume] = useState(false);
 
   const remainingAnalyses = getRemainingUsage('resume_analysis');
   const totalLimit = getUsageLimit('resume_analysis');
   const usedAnalyses = totalLimit > 0 ? totalLimit - remainingAnalyses : 0;
   const canUpload = subscription?.isPremium || subscription?.isAdmin || remainingAnalyses > 0;
+
+  // Fetch last resume data from database when component mounts
+  useEffect(() => {
+    const fetchLastResumeFromDatabase = async () => {
+      if (!user) return;
+
+      setLoadingLastResume(true);
+      try {
+        console.log('Fetching last resume from database for upload page:', user.email);
+        
+        // Get user's resumes from database, ordered by most recent
+        const { data: resumes, error } = await getUserResumes(user.id);
+        
+        if (error) {
+          console.error('Error fetching user resumes:', error);
+          return;
+        }
+
+        if (resumes && resumes.length > 0) {
+          // Get the most recent resume
+          const mostRecentResume = resumes[0];
+          console.log('Found most recent resume for upload page:', mostRecentResume.filename);
+          
+          // Check if there's stored analysis results in session storage for this resume
+          const storedAnalysisKey = `analysis_${mostRecentResume.id}`;
+          const storedAnalysis = sessionStorage.getItem(storedAnalysisKey);
+          
+          let analysisResults = null;
+          if (storedAnalysis) {
+            try {
+              analysisResults = JSON.parse(storedAnalysis);
+              console.log('Found stored analysis results for resume on upload page');
+            } catch (error) {
+              console.error('Error parsing stored analysis:', error);
+            }
+          }
+
+          // Set the resume data with analysis if available
+          const resumeData = {
+            ...mostRecentResume,
+            text: mostRecentResume.original_text,
+            analysisResults: analysisResults
+          };
+          
+          setLastResumeData(resumeData);
+          console.log('Last resume data loaded from database on upload page:', resumeData.filename);
+        } else {
+          console.log('No resumes found in database for upload page');
+          setLastResumeData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching last resume from database:', error);
+      } finally {
+        setLoadingLastResume(false);
+      }
+    };
+
+    if (user && !loadingLastResume) {
+      fetchLastResumeFromDatabase();
+    }
+  }, [user]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!canUpload) {
@@ -96,10 +159,12 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
       setUploadSuccess(true);
       
       // Store resume data for analysis
-      sessionStorage.setItem('currentResume', JSON.stringify({
+      const currentResumeData = {
         ...resumeRecord,
         text: extractedText
-      }));
+      };
+      
+      sessionStorage.setItem('currentResume', JSON.stringify(currentResumeData));
 
       // Proceed to analysis
       setTimeout(() => {
@@ -122,6 +187,41 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
 
   const handleUpgradeClick = () => {
     setShowUpgradeModal(true);
+  };
+
+  const handleAnalyzeLastResume = async () => {
+    if (!lastResumeData || !user) return;
+
+    // Check if user can perform resume analysis
+    const { subscription: currentSubscription, trackFeatureUsage } = await import('../context/SubscriptionContext');
+    
+    // For quota-exhausted users, show upgrade modal
+    if (!subscription?.isPremium && !subscription?.isAdmin && remainingAnalyses === 0) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    try {
+      // Track feature usage
+      const canAnalyze = await trackFeatureUsage('resume_analysis');
+      
+      if (!canAnalyze) {
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      // Store the last resume data for analysis
+      sessionStorage.setItem('currentResume', JSON.stringify({
+        ...lastResumeData,
+        text: lastResumeData.original_text || lastResumeData.text
+      }));
+
+      // Proceed to analysis
+      onFileUploaded();
+    } catch (error) {
+      console.error('Error analyzing last resume:', error);
+      setUploadError('Failed to analyze last resume. Please try again.');
+    }
   };
 
   return (
@@ -191,6 +291,49 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
             <p className="text-gray-600 mt-4">
               This is your most recent resume analysis. To upload a new resume and get fresh insights, 
               please upgrade to Premium.
+            </p>
+          </div>
+        )}
+
+        {/* Last Resume Quick Analysis for Users with Remaining Quota */}
+        {lastResumeData && !isQuotaExhausted && canUpload && (
+          <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FileText className="w-5 h-5 text-green-600 mr-2" />
+              Quick Action: Analyze Your Last Resume
+            </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-white p-3 rounded-lg border border-green-200 mr-4">
+                  <FileText className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{lastResumeData.filename}</p>
+                  <p className="text-sm text-gray-600">
+                    Uploaded on {new Date(lastResumeData.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleAnalyzeLastResume}
+                disabled={loadingLastResume}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
+              >
+                {loadingLastResume ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Analyze This Resume
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-sm text-green-700 mt-3">
+              💡 Skip the upload step and analyze your most recent resume directly from our database.
             </p>
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Zap, Target, Users, ArrowRight, CheckCircle, Eye, Calendar, Crown, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
+import { getUserResumes } from '../lib/supabase';
 import LastAnalysisModal from './LastAnalysisModal';
 import SubscriptionModal from './SubscriptionModal';
 
@@ -16,25 +17,124 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
   const [lastResumeData, setLastResumeData] = useState<any>(null);
   const [showLastAnalysisModal, setShowLastAnalysisModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [loadingLastResume, setLoadingLastResume] = useState(false);
 
-  // Check for last resume data when component mounts
+  // Fetch last resume data from database when component mounts
   useEffect(() => {
-    if (user) {
-      const storedResumeData = sessionStorage.getItem('currentResume');
-      if (storedResumeData) {
-        try {
-          const resumeData = JSON.parse(storedResumeData);
-          setLastResumeData(resumeData);
-          console.log('Last resume data loaded on landing page:', resumeData.filename);
-        } catch (error) {
-          console.error('Error parsing stored resume data:', error);
+    const fetchLastResumeFromDatabase = async () => {
+      if (!user) return;
+
+      setLoadingLastResume(true);
+      try {
+        console.log('Fetching last resume from database for user:', user.email);
+        
+        // Get user's resumes from database, ordered by most recent
+        const { data: resumes, error } = await getUserResumes(user.id);
+        
+        if (error) {
+          console.error('Error fetching user resumes:', error);
+          return;
         }
+
+        if (resumes && resumes.length > 0) {
+          // Get the most recent resume
+          const mostRecentResume = resumes[0];
+          console.log('Found most recent resume:', mostRecentResume.filename);
+          
+          // Check if there's stored analysis results in session storage for this resume
+          const storedAnalysisKey = `analysis_${mostRecentResume.id}`;
+          const storedAnalysis = sessionStorage.getItem(storedAnalysisKey);
+          
+          let analysisResults = null;
+          if (storedAnalysis) {
+            try {
+              analysisResults = JSON.parse(storedAnalysis);
+              console.log('Found stored analysis results for resume');
+            } catch (error) {
+              console.error('Error parsing stored analysis:', error);
+            }
+          }
+
+          // Set the resume data with analysis if available
+          const resumeData = {
+            ...mostRecentResume,
+            text: mostRecentResume.original_text,
+            analysisResults: analysisResults
+          };
+          
+          setLastResumeData(resumeData);
+          console.log('Last resume data loaded from database:', resumeData.filename);
+        } else {
+          console.log('No resumes found in database');
+          setLastResumeData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching last resume from database:', error);
+      } finally {
+        setLoadingLastResume(false);
       }
+    };
+
+    // Only fetch when user first lands on the app
+    if (user && !loadingLastResume) {
+      fetchLastResumeFromDatabase();
     }
   }, [user]);
 
+  // Check for quota exhaustion and show modal logic
+  useEffect(() => {
+    const checkUserResumeStatus = async () => {
+      if (!user || !subscription || loadingLastResume) return;
+
+      console.log('Checking user resume status...', { 
+        user: user.email, 
+        subscription: subscription.planType,
+        isPremium: subscription.isPremium,
+        isAdmin: subscription.isAdmin,
+        hasLastResumeData: !!lastResumeData
+      });
+
+      // Check if user has exhausted their quota
+      const remainingAnalyses = getRemainingUsage('resume_analysis');
+      const totalLimit = subscription.isPremium || subscription.isAdmin ? -1 : 1;
+      
+      console.log('Usage check:', { 
+        remainingAnalyses, 
+        totalLimit,
+        isPremium: subscription.isPremium,
+        isAdmin: subscription.isAdmin
+      });
+
+      // If user is free tier, has no remaining analyses, and has previous resume data
+      if (!subscription.isPremium && !subscription.isAdmin && remainingAnalyses === 0 && lastResumeData) {
+        console.log('Showing last analysis modal for free user with exhausted quota');
+        // Show modal asking if they want to see their last analysis
+        setShowLastAnalysisModal(true);
+      } else {
+        console.log('Not showing modal:', {
+          isPremium: subscription.isPremium,
+          isAdmin: subscription.isAdmin,
+          remainingAnalyses,
+          hasLastResumeData: !!lastResumeData
+        });
+      }
+    };
+
+    // Only check when all data is loaded
+    if (user && subscription && !loadingLastResume) {
+      // Add a small delay to ensure all context is loaded
+      setTimeout(checkUserResumeStatus, 500);
+    }
+  }, [user, subscription, getRemainingUsage, lastResumeData, loadingLastResume]);
+
   const handleViewLastAnalysis = () => {
     if (onViewLastAnalysis && lastResumeData) {
+      // Store the resume data in session storage for the analysis flow
+      sessionStorage.setItem('currentResume', JSON.stringify({
+        ...lastResumeData,
+        text: lastResumeData.original_text || lastResumeData.text
+      }));
+      
       onViewLastAnalysis(lastResumeData);
     } else {
       setShowLastAnalysisModal(true);
@@ -49,6 +149,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
   const handleViewAnalysisFromModal = () => {
     setShowLastAnalysisModal(false);
     if (onViewLastAnalysis && lastResumeData) {
+      // Store the resume data in session storage for the analysis flow
+      sessionStorage.setItem('currentResume', JSON.stringify({
+        ...lastResumeData,
+        text: lastResumeData.original_text || lastResumeData.text
+      }));
+      
       onViewLastAnalysis(lastResumeData);
     }
   };
@@ -104,7 +210,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
     remainingAnalyses,
     isQuotaExhausted,
     hasLastResumeData,
-    lastResumeFilename: lastResumeData?.filename
+    lastResumeFilename: lastResumeData?.filename,
+    loadingLastResume
   });
 
   return (
@@ -200,14 +307,34 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onViewLastAnaly
                 <button
                   onClick={handleViewLastAnalysis}
                   className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
+                  disabled={loadingLastResume}
                 >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Last Analysis
+                  {loadingLastResume ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Last Analysis
+                    </>
+                  )}
                 </button>
                 
                 <p className="text-xs text-gray-500 mt-2 text-center">
                   Free users get 1 analysis per month
                 </p>
+              </div>
+            )}
+
+            {/* Loading indicator for last resume */}
+            {user && loadingLastResume && (
+              <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto border border-gray-200 mt-8">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mr-3"></div>
+                  <span className="text-gray-600">Loading your last resume...</span>
+                </div>
               </div>
             )}
           </div>
