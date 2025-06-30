@@ -1,5 +1,5 @@
 import  { useState, useEffect } from 'react';
-import { Upload, Target, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertCircle, Zap, Star, ArrowRight, Lightbulb } from 'lucide-react';
+import {  Target, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertCircle, Zap, Star, Lightbulb } from 'lucide-react';
 import { compareWithJobDescription } from '../services/geminiService';
 
 interface JobMatchValidatorProps {
