@@ -296,6 +296,135 @@ export const analyzeResume = async (resumeText: string) => {
   }
 };
 
+export const generateRestructureSuggestions = async (resumeText: string, analysisResults?: any) => {
+  if (!genAI) {
+    // Return enhanced mock data if API key is not available
+    return {
+      restructure_points: [
+        {
+          id: 'summary',
+          category: 'Professional Summary',
+          priority: 'high',
+          current: 'Generic summary or objective statement',
+          suggested: `[Your Years] [Your Role] with proven track record of [specific achievement with numbers]. Expert in [key skills from job description] with history of [quantified result]. Seeking to leverage [expertise] to drive [relevant outcome] at [target company type].`,
+          reason: 'Recruiters spend 6 seconds on initial scan - summary must immediately show value',
+          example: 'Senior Software Engineer with 7+ years delivering scalable web applications. Expert in React, Python, and AWS with history of reducing load times by 40% and leading teams of 5+ developers. Seeking to leverage full-stack expertise to drive digital transformation at innovative tech companies.'
+        },
+        {
+          id: 'experience',
+          category: 'Work Experience',
+          priority: 'high',
+          current: 'Job descriptions focus on duties rather than achievements',
+          suggested: 'Transform each bullet point: [Action Verb] + [What You Did] + [Quantified Result]',
+          reason: 'Quantified achievements are 3x more likely to catch recruiter attention',
+          example: 'Led team of 8 developers, delivering 15 projects on time and 20% under budget, resulting in $2M cost savings'
+        },
+        {
+          id: 'skills',
+          category: 'Skills Section',
+          priority: 'medium',
+          current: 'Unorganized list that\'s hard to scan',
+          suggested: 'Organize into categories: Technical Skills, Leadership & Management, Industry Knowledge',
+          reason: 'Organized skills are easier for ATS systems and recruiters to process',
+          example: 'Technical: Python, React, AWS, Docker | Leadership: Team Management, Agile Coaching | Industry: FinTech, SaaS'
+        },
+        {
+          id: 'achievements',
+          category: 'Key Achievements Section',
+          priority: 'high',
+          current: 'Missing dedicated achievements section',
+          suggested: 'Add 3-4 bullet points with specific metrics showing your biggest wins',
+          reason: 'Dedicated achievements section immediately shows your value and impact',
+          example: '• Increased system performance by 60% through database optimization\n• Led digital transformation project resulting in $1.5M annual savings\n• Mentored 12 junior developers, with 100% retention rate'
+        }
+      ],
+      expected_impact: {
+        interview_callbacks: 40,
+        ats_pass_rate: 60,
+        overall_score_increase: 25
+      }
+    };
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `
+      Based on the following resume content and analysis, generate specific restructure suggestions in JSON format:
+
+      Resume Text:
+      ${resumeText}
+
+      ${analysisResults ? `Previous Analysis Results: ${JSON.stringify(analysisResults)}` : ''}
+
+      Please provide restructure suggestions in the following JSON structure:
+      {
+        "restructure_points": [
+          {
+            "id": "unique_id",
+            "category": "section name",
+            "priority": "high" | "medium" | "low",
+            "current": "description of current state",
+            "suggested": "specific improvement suggestion with template",
+            "reason": "why this change will improve results",
+            "example": "concrete example showing the improvement"
+          }
+        ],
+        "expected_impact": {
+          "interview_callbacks": number (percentage increase),
+          "ats_pass_rate": number (percentage increase),
+          "overall_score_increase": number (percentage increase)
+        }
+      }
+
+      Focus on:
+      1. Specific, actionable changes with templates
+      2. Quantified achievements and metrics
+      3. ATS optimization
+      4. Industry-specific improvements
+      5. Professional formatting and structure
+      6. Keyword optimization
+
+      Provide at least 4-6 restructure points covering different sections of the resume.
+      Make suggestions specific to the actual content of this resume.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // Extract JSON from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format from AI');
+    }
+
+    const restructureResult = JSON.parse(jsonMatch[0]);
+    return restructureResult;
+  } catch (error) {
+    console.error('Error generating restructure suggestions:', error);
+    // Return fallback data
+    return {
+      restructure_points: [
+        {
+          id: 'summary',
+          category: 'Professional Summary',
+          priority: 'high',
+          current: 'Generic summary statement',
+          suggested: 'Add specific achievements and quantified results',
+          reason: 'Recruiters spend 6 seconds on initial scan',
+          example: 'Senior Software Engineer with 7+ years delivering scalable applications'
+        }
+      ],
+      expected_impact: {
+        interview_callbacks: 40,
+        ats_pass_rate: 60,
+        overall_score_increase: 25
+      }
+    };
+  }
+};
+
 export const compareWithJobDescription = async (resumeText: string, jobDescription: string) => {
   if (!genAI) {
     // Return enhanced mock data if API key is not available
