@@ -36,19 +36,22 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetchingStatus, setFetchingStatus] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && !fetchingStatus) {
       fetchSubscriptionStatus();
-    } else {
+    } else if (!user) {
       setSubscription(null);
     }
   }, [user]);
 
   const fetchSubscriptionStatus = async () => {
-    if (!user) return;
+    if (!user || fetchingStatus) return;
 
+    setFetchingStatus(true);
     setLoading(true);
+    
     try {
       // Get subscription status with error handling
       let statusData = null;
@@ -104,19 +107,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           isUnlimited: false
         };
         limitsMap['job_matching'] = {
-          limit: 0,
+          limit: 1,
           used: 0,
           resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           isUnlimited: false
         };
         limitsMap['keyword_analysis'] = {
-          limit: 0,
+          limit: 1,
           used: 0,
           resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           isUnlimited: false
         };
         limitsMap['restructure_guide'] = {
-          limit: 0,
+          limit: 1,
           used: 0,
           resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           isUnlimited: false
@@ -130,14 +133,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }, {} as Record<string, number>);
 
       const status = statusData?.[0];
-      setSubscription({
+      const newSubscription = {
         isPremium: status?.is_premium || false,
         isAdmin: status?.is_admin || false,
         planType: status?.plan_type || 'free',
         status: status?.status || 'inactive',
         usageData: usageMap,
         limitsData: limitsMap
-      });
+      };
+
+      setSubscription(newSubscription);
     } catch (error) {
       console.error('Error in fetchSubscriptionStatus:', error);
       // Set default free tier subscription
@@ -155,19 +160,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
             isUnlimited: false
           },
           'job_matching': {
-            limit: 0,
+            limit: 1,
             used: 0,
             resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             isUnlimited: false
           },
           'keyword_analysis': {
-            limit: 0,
+            limit: 1,
             used: 0,
             resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             isUnlimited: false
           },
           'restructure_guide': {
-            limit: 0,
+            limit: 1,
             used: 0,
             resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             isUnlimited: false
@@ -176,6 +181,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     } finally {
       setLoading(false);
+      setFetchingStatus(false);
     }
   };
 
@@ -199,6 +205,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const trackFeatureUsage = async (feature: string): Promise<boolean> => {
     if (!user) return false;
 
+    // Admin users always have access
+    if (subscription?.isAdmin) return true;
+
     try {
       const { data, error } = await supabase
         .rpc('track_feature_usage', {
@@ -208,6 +217,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error) {
         console.error('Error tracking feature usage:', error);
+        // For admin users or if tracking fails, allow access
+        if (subscription?.isAdmin) {
+          return true;
+        }
         // For free tier resume analysis, allow it to proceed even if tracking fails
         if (feature === 'resume_analysis' && subscription?.planType === 'free') {
           return true;
@@ -216,11 +229,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       // Refresh subscription status to update usage counts
-      await fetchSubscriptionStatus();
+      if (data) {
+        await fetchSubscriptionStatus();
+      }
 
       return data;
     } catch (error) {
       console.error('Error in trackFeatureUsage:', error);
+      // For admin users, always allow access
+      if (subscription?.isAdmin) {
+        return true;
+      }
       // For free tier resume analysis, allow it to proceed even if tracking fails
       if (feature === 'resume_analysis' && subscription?.planType === 'free') {
         return true;
@@ -230,7 +249,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const refreshSubscription = async () => {
-    await fetchSubscriptionStatus();
+    if (!fetchingStatus) {
+      await fetchSubscriptionStatus();
+    }
   };
 
   const getUsageLimit = (feature: string): number => {

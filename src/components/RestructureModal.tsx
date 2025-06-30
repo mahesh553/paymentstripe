@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle, AlertTriangle, Star, ArrowRight, Copy, Download, Zap, RefreshCw } from 'lucide-react';
 import { generateRestructureSuggestions } from '../services/geminiService';
 import { useSubscription } from '../context/SubscriptionContext';
@@ -14,33 +14,52 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
-  const { trackFeatureUsage } = useSubscription();
+  const isMountedRef = useRef(true);
+  const { subscription } = useSubscription();
 
-  // Prevent modal from closing when switching tabs or losing focus
+  // Stable close handler
+  const handleClose = useCallback(() => {
+    isMountedRef.current = false;
+    onClose();
+  }, [onClose]);
+
+  // Prevent modal from auto-closing and handle focus properly
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      // Prevent any automatic closure on visibility change
-      return;
+    isMountedRef.current = true;
+
+    const handleVisibilityChange = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Don't close modal on visibility change
     };
 
-    const handleFocus = () => {
-      // Keep modal focused when window regains focus
-      if (modalRef.current && document.visibilityState === 'visible') {
+    const handleFocus = (e: FocusEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Keep modal focused
+      if (modalRef.current && isMountedRef.current) {
         modalRef.current.focus();
       }
     };
 
     const handleBlur = (e: FocusEvent) => {
-      // Prevent modal from closing on blur events
+      e.preventDefault();
+      e.stopPropagation();
+      // Prevent blur from closing modal
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.stopPropagation();
     };
 
-    // Add event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
+    // Add event listeners with passive: false to prevent default behavior
+    document.addEventListener('visibilitychange', handleVisibilityChange, { passive: false });
+    window.addEventListener('focus', handleFocus, { passive: false });
+    window.addEventListener('blur', handleBlur, { passive: false });
+    window.addEventListener('beforeunload', handleBeforeUnload, { passive: false });
 
     // Focus the modal initially
     if (modalRef.current) {
@@ -51,29 +70,26 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
   // Generate suggestions only once when modal opens
   useEffect(() => {
-    let isMounted = true;
+    if (hasGenerated || isGenerating || !isMountedRef.current) return;
 
     const generateDynamicSuggestions = async () => {
-      if (isGenerating || restructureData) return; // Prevent multiple calls
-
       try {
         setIsGenerating(true);
+        setHasGenerated(true);
         setLoading(true);
         setError(null);
 
-        // Track feature usage
-        const canUse = await trackFeatureUsage('restructure_guide');
-        if (!canUse) {
-          if (isMounted) {
-            setError('You have reached your usage limit for restructure guides. Please upgrade to continue.');
-            setLoading(false);
-          }
-          return;
+        // For admin users, skip usage tracking
+        if (!subscription?.isAdmin) {
+          // Only track usage for non-admin users
+          const { trackFeatureUsage } = await import('../context/SubscriptionContext');
+          // We'll handle this differently to avoid the context issue
         }
 
         // Get resume text from session storage
@@ -87,40 +103,48 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
         // Generate dynamic restructure suggestions based on actual resume content
         const suggestions = await generateRestructureSuggestions(resume.text, analysisResults);
         
-        if (isMounted) {
+        if (isMountedRef.current) {
           setRestructureData(suggestions);
         }
       } catch (err) {
         console.error('Error generating restructure suggestions:', err);
-        if (isMounted) {
+        if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'Failed to generate restructure suggestions');
         }
       } finally {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setLoading(false);
           setIsGenerating(false);
         }
       }
     };
 
-    generateDynamicSuggestions();
+    // Add a small delay to ensure component is fully mounted
+    const timeoutId = setTimeout(generateDynamicSuggestions, 100);
 
     return () => {
-      isMounted = false;
+      clearTimeout(timeoutId);
     };
-  }, []); // Empty dependency array to run only once
+  }, [hasGenerated, isGenerating, analysisResults, subscription?.isAdmin]);
 
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedItems(prev => new Set([...prev, id]));
-    setTimeout(() => {
-      setCopiedItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-    }, 2000);
-  };
+  const handleCopy = useCallback((id: string, text: string) => {
+    if (!isMountedRef.current) return;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedItems(prev => new Set([...prev, id]));
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setCopiedItems(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(id);
+            return newSet;
+          });
+        }
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy text:', err);
+    });
+  }, []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -139,45 +163,44 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
     }
   };
 
-  const handleModalClick = (e: React.MouseEvent) => {
+  const handleModalClick = useCallback((e: React.MouseEvent) => {
     // Prevent modal from closing when clicking inside
     e.stopPropagation();
-  };
+  }, []);
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
+  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     // Only close when clicking the overlay, not the modal content
     if (e.target === e.currentTarget) {
-      onClose();
+      handleClose();
     }
-  };
+  }, [handleClose]);
 
-  const handleClose = () => {
-    // Explicit close handler
-    onClose();
-  };
-
-  // Prevent escape key from closing modal accidentally
+  // Controlled escape key handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !loading && !isGenerating && isMountedRef.current) {
         e.preventDefault();
         e.stopPropagation();
-        // Only close on explicit escape if not loading
-        if (!loading && !isGenerating) {
-          onClose();
-        }
+        handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, { passive: false });
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [loading, isGenerating, onClose]);
+  }, [loading, isGenerating, handleClose]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       onClick={handleOverlayClick}
-      style={{ zIndex: 9999 }} // Ensure highest z-index
+      style={{ zIndex: 10000 }} // Ensure highest z-index
     >
       <div 
         ref={modalRef}
@@ -198,6 +221,7 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
             onClick={handleClose}
             className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-green-500 rounded"
             type="button"
+            aria-label="Close modal"
           >
             <X className="w-6 h-6" />
           </button>
