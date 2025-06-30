@@ -69,19 +69,19 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read own subscriptions"
+CREATE POLICY IF NOT EXISTS "Users can read own subscriptions"
   ON subscriptions
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own subscriptions"
+CREATE POLICY IF NOT EXISTS "Users can insert own subscriptions"
   ON subscriptions
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own subscriptions"
+CREATE POLICY IF NOT EXISTS "Users can update own subscriptions"
   ON subscriptions
   FOR UPDATE
   TO authenticated
