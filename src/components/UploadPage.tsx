@@ -71,7 +71,7 @@ const UploadPage: React.FC<UploadPageProps> = ({ onFileUploaded, lastResumeData,
       const extractedText = await extractTextFromFile(uploadedFile);
 
       // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError, fileName } = await uploadResume(uploadedFile, user.id);
+      const { data: _uploadData, error: uploadError, fileName } = await uploadResume(uploadedFile, user.id);
       
       if (uploadError) {
         throw new Error(`Upload failed: ${uploadError.message}`);
