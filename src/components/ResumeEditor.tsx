@@ -53,7 +53,31 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showVerification, setShowVerification] = useState(true);
   const [highlightedText, setHighlightedText] = useState<Record<string, string[]>>({});
+  const [tinymceLoaded, setTinymceLoaded] = useState(false);
   const editorRefs = useRef<Record<string, any>>({});
+
+  // Load TinyMCE from CDN
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js';
+    script.onload = () => {
+      setTinymceLoaded(true);
+      console.log('TinyMCE loaded from CDN');
+    };
+    script.onerror = () => {
+      console.error('Failed to load TinyMCE from CDN');
+      setTinymceLoaded(true); // Still allow the component to render
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script tag
+      const existingScript = document.querySelector('script[src*="tinymce"]');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   // Parse resume text into structured sections
   const parseResumeText = (text: string): ParsedResume => {
@@ -453,26 +477,40 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
                       </button>
                     </div>
 
-                    <Editor
-                      apiKey="your-tinymce-api-key" // You'll need to get this from TinyMCE
-                      value={parsedResume.sections.find(s => s.id === currentSection)?.content || ''}
-                      onEditorChange={(content) => updateSectionContent(currentSection, content)}
-                      init={{
-                        height: 400,
-                        menubar: false,
-                        plugins: [
-                          'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-                          'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                          'insertdatetime', 'table', 'help', 'wordcount'
-                        ],
-                        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | removeformat | help',
-                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.6; }',
-                        placeholder: 'Start editing this section...',
-                        setup: (editor) => {
-                          editorRefs.current[currentSection] = editor;
-                        }
-                      }}
-                    />
+                    {tinymceLoaded ? (
+                      <Editor
+                        tinymceScriptSrc="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"
+                        value={parsedResume.sections.find(s => s.id === currentSection)?.content || ''}
+                        onEditorChange={(content) => updateSectionContent(currentSection, content)}
+                        init={{
+                          height: 400,
+                          menubar: false,
+                          plugins: [
+                            'lists', 'link', 'autolink', 'charmap', 'preview',
+                            'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                            'insertdatetime', 'table', 'help', 'wordcount'
+                          ],
+                          toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | link | removeformat | help',
+                          content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.6; }',
+                          placeholder: 'Start editing this section...',
+                          branding: false,
+                          promotion: false,
+                          setup: (editor) => {
+                            editorRefs.current[currentSection] = editor;
+                            editor.on('init', () => {
+                              console.log('TinyMCE editor initialized for section:', currentSection);
+                            });
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
+                          <p className="text-gray-600">Loading editor...</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
