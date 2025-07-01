@@ -514,6 +514,26 @@ const RestructureModal: React.FC<RestructureModalProps> = ({ onClose, analysisRe
     return 'achievement';
   };
 
+  // Missing function that was causing the error
+  const extractMetricTypeFromSuggestion = (text: string): string => {
+    if (text.includes('performance')) return 'system performance';
+    if (text.includes('efficiency')) return 'operational efficiency';
+    if (text.includes('productivity')) return 'team productivity';
+    if (text.includes('quality')) return 'code quality';
+    if (text.includes('speed')) return 'processing speed';
+    if (text.includes('accuracy')) return 'data accuracy';
+    if (text.includes('satisfaction')) return 'customer satisfaction';
+    if (text.includes('retention')) return 'user retention';
+    if (text.includes('conversion')) return 'conversion rate';
+    if (text.includes('engagement')) return 'user engagement';
+    if (text.includes('revenue')) return 'revenue growth';
+    if (text.includes('cost')) return 'cost reduction';
+    if (text.includes('time')) return 'response time';
+    if (text.includes('throughput')) return 'system throughput';
+    if (text.includes('uptime')) return 'system uptime';
+    return 'overall performance';
+  };
+
   // Generate mock examples based on suggestion type (fallback)
   const generateMockExamples = (suggestion: any): string[] => {
     const examples = {
