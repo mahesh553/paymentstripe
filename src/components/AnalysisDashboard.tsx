@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RefreshCw, Upload, Crown } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Upload, Crown, Edit3 } from 'lucide-react';
 import AnalysisResults from './AnalysisResults';
 import UserMenu from './UserMenu';
 import RestructureModal from './RestructureModal';
@@ -11,9 +11,10 @@ import { useSubscription } from '../context/SubscriptionContext';
 interface AnalysisDashboardProps {
   results: any;
   onBack: () => void;
+  onEditResume?: () => void;
 }
 
-const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }) => {
+const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack, onEditResume }) => {
   const [showRestructureModal, setShowRestructureModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { subscription, getRemainingUsage } = useSubscription();
@@ -60,6 +61,17 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Edit Resume Button */}
+              {onEditResume && (
+                <button
+                  onClick={onEditResume}
+                  className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Edit Resume</span>
+                </button>
+              )}
+
               {/* New Upload Button */}
               {canUploadNew ? (
                 <button
@@ -89,24 +101,22 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
                   <span>Restructure Resume</span>
                 </button>
               ) : (
-              <button
-    // Logic: If restructure quota is exceeded, the button is truly disabled (unclickable).
-    // Otherwise (it's a premium feature but not due to quota), it's clickable to show upgrade modal.
-    onClick={isFreeUserQuotaExceeded ? undefined : () => setShowUpgradeModal(true)} // <-- UPDATED CLICK HANDLER
-    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all 
-      ${isFreeUserQuotaExceeded 
-        ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed' // <-- ADDED DISABLED STYLES (same as Upload New)
-        : 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400 hover:text-gray-600' // Existing grey styles for premium upsell
-      }`}
-    title={isFreeUserQuotaExceeded ? "Monthly limit reached - Upgrade to continue" : "Premium feature - Upgrade to unlock"}
-    disabled={isFreeUserRestructureQuotaExceeded} // <-- ADD THIS: Apply the HTML 'disabled' attribute
-  >
-    <Crown className="w-4 h-4" />
-    <span>
-      {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'} 
-    </span>
-  </button>
-)}
+                <button
+                  onClick={isFreeUserQuotaExceeded ? undefined : () => setShowUpgradeModal(true)}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all 
+                    ${isFreeUserQuotaExceeded 
+                      ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed' 
+                      : 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400 hover:text-gray-600'
+                    }`}
+                  title={isFreeUserQuotaExceeded ? "Monthly limit reached - Upgrade to continue" : "Premium feature - Upgrade to unlock"}
+                  disabled={isFreeUserQuotaExceeded}
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>
+                    {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'} 
+                  </span>
+                </button>
+              )}
               
               <UserMenu />
             </div>

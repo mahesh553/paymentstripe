@@ -4,12 +4,13 @@ import { useSubscription } from './context/SubscriptionContext';
 import LandingPage from './components/LandingPage';
 import UploadPage from './components/UploadPage';
 import AnalysisDashboard from './components/AnalysisDashboard';
+import ResumeEditor from './components/ResumeEditor';
 import AuthModal from './components/AuthModal';
 import OptimizedLoadingAnalysis from './components/OptimizedLoadingAnalysis';
 import SubscriptionModal from './components/SubscriptionModal';
 import PerformanceDashboard from './components/PerformanceDashboard';
 
-type AppState = 'landing' | 'upload' | 'analyzing' | 'results';
+type AppState = 'landing' | 'upload' | 'analyzing' | 'results' | 'editor';
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>('landing');
@@ -17,6 +18,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
+  const [currentResumeData, setCurrentResumeData] = useState<any>(null);
   const { user, loading } = useAuth();
   const { subscription, trackFeatureUsage, getRemainingUsage } = useSubscription();
 
@@ -25,6 +27,7 @@ function App() {
     if (!user && !loading) {
       setCurrentState('landing');
       setAnalysisResults(null);
+      setCurrentResumeData(null);
       setShowAuthModal(false);
       setShowSubscriptionModal(false);
       setPendingAnalysis(false);
@@ -129,6 +132,25 @@ function App() {
     setAnalysisResults(null);
   };
 
+  const handleEditResume = () => {
+    // Get current resume data from session storage
+    const storedResumeData = sessionStorage.getItem('currentResume');
+    if (storedResumeData) {
+      try {
+        const resumeData = JSON.parse(storedResumeData);
+        setCurrentResumeData(resumeData);
+        setCurrentState('editor');
+      } catch (error) {
+        console.error('Error loading resume data:', error);
+      }
+    }
+  };
+
+  const handleBackFromEditor = () => {
+    setCurrentState('results');
+    setCurrentResumeData(null);
+  };
+
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
     setCurrentState('upload');
@@ -180,7 +202,20 @@ function App() {
       case 'analyzing':
         return <OptimizedLoadingAnalysis onComplete={handleAnalysisComplete} />;
       case 'results':
-        return <AnalysisDashboard results={analysisResults} onBack={handleBackToUpload} />;
+        return (
+          <AnalysisDashboard 
+            results={analysisResults} 
+            onBack={handleBackToUpload}
+            onEditResume={handleEditResume}
+          />
+        );
+      case 'editor':
+        return (
+          <ResumeEditor
+            onBack={handleBackFromEditor}
+            resumeData={currentResumeData}
+          />
+        );
       default:
         return <LandingPage onGetStarted={handleGetStarted} />;
     }

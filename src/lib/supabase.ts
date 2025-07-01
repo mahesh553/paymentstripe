@@ -171,6 +171,20 @@ export const createResumeRecord = async (resumeData: any) => {
   return { data, error }
 }
 
+export const updateResumeContent = async (resumeId: string, content: string) => {
+  const { data, error } = await supabase
+    .from('resumes')
+    .update({ 
+      original_text: content,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', resumeId)
+    .select()
+    .single()
+  
+  return { data, error }
+}
+
 export const getUserResumes = async (userId: string) => {
   const { data, error } = await supabase
     .from('resumes')
