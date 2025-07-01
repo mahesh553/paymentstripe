@@ -89,17 +89,24 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
                   <span>Restructure Resume</span>
                 </button>
               ) : (
-                <button
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="flex items-center space-x-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-pointer hover:bg-gray-400 hover:text-gray-600 transition-all"
-                  title={isFreeUserQuotaExceeded ? "Monthly limit reached - Upgrade to continue" : "Premium feature - Upgrade to unlock"}
-                >
-                  <Crown className="w-4 h-4" />
-                  <span>
-                    {isFreeUserQuotaExceeded ? 'Upgrade to Restructure Resume' : 'Restructure Guide (Premium)'}
-                  </span>
-                </button>
-              )}
+              <button
+    // Logic: If restructure quota is exceeded, the button is truly disabled (unclickable).
+    // Otherwise (it's a premium feature but not due to quota), it's clickable to show upgrade modal.
+    onClick={isFreeUserQuotaExceeded ? undefined : () => setShowUpgradeModal(true)} // <-- UPDATED CLICK HANDLER
+    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all 
+      ${isFreeUserQuotaExceeded 
+        ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed' // <-- ADDED DISABLED STYLES (same as Upload New)
+        : 'bg-gray-300 text-gray-500 cursor-pointer hover:bg-gray-400 hover:text-gray-600' // Existing grey styles for premium upsell
+      }`}
+    title={isFreeUserQuotaExceeded ? "Monthly limit reached - Upgrade to continue" : "Premium feature - Upgrade to unlock"}
+    disabled={isFreeUserRestructureQuotaExceeded} // <-- ADD THIS: Apply the HTML 'disabled' attribute
+  >
+    <Crown className="w-4 h-4" />
+    <span>
+      {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'} // <-- RECOMMENDED TEXT for consistency
+    </span>
+  </button>
+)}
               
               <UserMenu />
             </div>
