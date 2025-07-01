@@ -53,31 +53,7 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showVerification, setShowVerification] = useState(true);
   const [highlightedText, setHighlightedText] = useState<Record<string, string[]>>({});
-  const [tinymceLoaded, setTinymceLoaded] = useState(false);
   const editorRefs = useRef<Record<string, any>>({});
-
-  // Load TinyMCE from CDN
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js';
-    script.onload = () => {
-      setTinymceLoaded(true);
-      console.log('TinyMCE loaded from CDN');
-    };
-    script.onerror = () => {
-      console.error('Failed to load TinyMCE from CDN');
-      setTinymceLoaded(true); // Still allow the component to render
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup script tag
-      const existingScript = document.querySelector('script[src*="tinymce"]');
-      if (existingScript) {
-        document.head.removeChild(existingScript);
-      }
-    };
-  }, []);
 
   // Parse resume text into structured sections
   const parseResumeText = (text: string): ParsedResume => {
@@ -309,16 +285,14 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
     }));
   };
 
-  // Reorder sections (drag and drop)
-  const reorderSection = (sectionId: string, newOrder: number) => {
-    if (!parsedResume) return;
+  // Handle verification modal close
+  const handleVerificationClose = () => {
+    setShowVerification(false);
+  };
 
-    setParsedResume(prev => ({
-      ...prev!,
-      sections: prev!.sections.map(section =>
-        section.id === sectionId ? { ...section, order: newOrder } : section
-      ).sort((a, b) => a.order - b.order)
-    }));
+  // Handle back button in verification modal
+  const handleVerificationBack = () => {
+    onBack();
   };
 
   if (!parsedResume) {
@@ -384,10 +358,21 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Parsed Sections</h2>
-              <p className="text-gray-600">
-                Please review and confirm the sections we've identified in your resume. You can drag to reorder or edit section titles.
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Parsed Sections</h2>
+                  <p className="text-gray-600">
+                    Please review and confirm the sections we've identified in your resume. You can drag to reorder or edit section titles.
+                  </p>
+                </div>
+                <button
+                  onClick={handleVerificationBack}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Go back"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[60vh]">
@@ -409,9 +394,15 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+            <div className="p-6 border-t border-gray-200 flex justify-between items-center">
               <button
-                onClick={() => setShowVerification(false)}
+                onClick={handleVerificationBack}
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleVerificationClose}
                 className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
               >
                 Looks Good - Start Editing
@@ -477,41 +468,32 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
                       </button>
                     </div>
 
-                    {tinymceLoaded ? (
-                      <Editor
-                        tinymceScriptSrc="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"
-                        value={parsedResume.sections.find(s => s.id === currentSection)?.content || ''}
-                        onEditorChange={(content) => updateSectionContent(currentSection, content)}
-                        init={{
-                          height: 400,
-                          menubar: false,
-                          readonly: false,
-                          plugins: [
-                            'lists', 'link', 'autolink', 'charmap', 'preview',
-                            'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                            'insertdatetime', 'table', 'help', 'wordcount'
-                          ],
-                          toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | link | removeformat | help',
-                          content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.6; }',
-                          placeholder: 'Start editing this section...',
-                          branding: false,
-                          promotion: false,
-                          setup: (editor) => {
-                            editorRefs.current[currentSection] = editor;
-                            editor.on('init', () => {
-                              console.log('TinyMCE editor initialized for section:', currentSection);
-                            });
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
-                          <p className="text-gray-600">Loading editor...</p>
-                        </div>
-                      </div>
-                    )}
+                    <Editor
+                      apiKey="7a1s9tsxmt932oy4c51f2ij4t187l4ruapv6r1eww8eb68uf"
+                      value={parsedResume.sections.find(s => s.id === currentSection)?.content || ''}
+                      onEditorChange={(content) => updateSectionContent(currentSection, content)}
+                      init={{
+                        height: 400,
+                        menubar: false,
+                        readonly: false,
+                        plugins: [
+                          'lists', 'link', 'autolink', 'charmap', 'preview',
+                          'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                          'insertdatetime', 'table', 'help', 'wordcount'
+                        ],
+                        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | link | removeformat | help',
+                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.6; }',
+                        placeholder: 'Start editing this section...',
+                        branding: false,
+                        promotion: false,
+                        setup: (editor) => {
+                          editorRefs.current[currentSection] = editor;
+                          editor.on('init', () => {
+                            console.log('TinyMCE editor initialized for section:', currentSection);
+                          });
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </div>
