@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RefreshCw, Upload, Crown, Edit3 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Upload, Crown } from 'lucide-react';
 import AnalysisResults from './AnalysisResults';
 import UserMenu from './UserMenu';
 import RestructureModal from './RestructureModal';
@@ -61,8 +61,8 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack, 
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Edit Resume Button */}
-              {onEditResume && (
+              {/* Edit Resume Button - COMMENTED OUT */}
+              {/* {onEditResume && (
                 <button
                   onClick={onEditResume}
                   className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg"
@@ -70,7 +70,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack, 
                   <Edit3 className="w-4 h-4" />
                   <span>Edit Resume</span>
                 </button>
-              )}
+              )} */}
 
               {/* New Upload Button */}
               {canUploadNew ? (
