@@ -16,15 +16,15 @@ export class DatabaseCacheService {
         }, {
           onConflict: 'resume_id,analysis_type'
         })
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Error storing analysis:', error);
         return null;
       }
 
-      return data;
+      // Return the first item if data is an array, otherwise return data
+      return Array.isArray(data) ? data[0] : data;
     } catch (error) {
       console.error('Error in storeAnalysis:', error);
       return null;
@@ -40,22 +40,29 @@ export class DatabaseCacheService {
         .eq('resume_id', resumeId)
         .eq('analysis_type', analysisType)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error || !data) {
+      if (error) {
+        console.error('Error getting cached analysis:', error);
         return null;
       }
 
+      // Check if we have any data
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return null;
+      }
+
+      const analysisData = data[0];
+
       // Check if analysis is recent (within 7 days)
-      const analysisDate = new Date(data.created_at);
+      const analysisDate = new Date(analysisData.created_at);
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       
       if (analysisDate < weekAgo) {
         return null; // Analysis is too old
       }
 
-      return data.results;
+      return analysisData.results;
     } catch (error) {
       console.error('Error getting cached analysis:', error);
       return null;
@@ -76,15 +83,15 @@ export class DatabaseCacheService {
           recommendations: results,
           created_at: new Date().toISOString()
         })
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Error storing job match:', error);
         return null;
       }
 
-      return data;
+      // Return the first item if data is an array, otherwise return data
+      return Array.isArray(data) ? data[0] : data;
     } catch (error) {
       console.error('Error in storeJobMatch:', error);
       return null;
@@ -102,7 +109,12 @@ export class DatabaseCacheService {
         .order('created_at', { ascending: false })
         .limit(10); // Get recent matches
 
-      if (error || !data || data.length === 0) {
+      if (error) {
+        console.error('Error getting cached job match:', error);
+        return null;
+      }
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
         return null;
       }
 

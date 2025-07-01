@@ -161,6 +161,7 @@ export const analyzeResume = async (resumeText: string) => {
     return analysisResult;
   } catch (error) {
     console.error('Error analyzing resume:', error);
+    console.log('🤖 Falling back to enhanced mock data due to API error');
     const fallback = { ...ENHANCED_MOCK_DATA };
     cacheService.cacheAnalysis(resumeText, fallback);
     return fallback;
@@ -176,28 +177,30 @@ export const compareWithJobDescription = async (resumeText: string, jobDescripti
     return cached;
   }
 
-  if (!genAI) {
-    const mockResult = {
-      match_score: 72,
-      matching_skills: ["Project Management", "Leadership", "Communication", "Problem Solving", "Team Collaboration"],
-      missing_skills: ["Python", "Data Analysis", "Machine Learning", "SQL", "Agile Methodology"],
-      recommendations: [
-        {
-          category: "Critical Keywords",
-          suggestion: "Add 'Python programming' and 'data analysis' to your skills section",
-          priority: "high"
-        },
-        {
-          category: "Experience Rephrasing",
-          suggestion: "Rephrase 'Managed team projects' to 'Led cross-functional teams using Agile methodology'",
-          priority: "high"
-        }
-      ],
-      keyword_analysis: {
-        matched_keywords: ["management", "leadership", "team", "project", "communication"],
-        missing_keywords: ["python", "data analysis", "machine learning", "sql", "agile"]
+  const mockResult = {
+    match_score: 72,
+    matching_skills: ["Project Management", "Leadership", "Communication", "Problem Solving", "Team Collaboration"],
+    missing_skills: ["Python", "Data Analysis", "Machine Learning", "SQL", "Agile Methodology"],
+    recommendations: [
+      {
+        category: "Critical Keywords",
+        suggestion: "Add 'Python programming' and 'data analysis' to your skills section",
+        priority: "high"
+      },
+      {
+        category: "Experience Rephrasing",
+        suggestion: "Rephrase 'Managed team projects' to 'Led cross-functional teams using Agile methodology'",
+        priority: "high"
       }
-    };
+    ],
+    keyword_analysis: {
+      matched_keywords: ["management", "leadership", "team", "project", "communication"],
+      missing_keywords: ["python", "data analysis", "machine learning", "sql", "agile"]
+    }
+  };
+
+  if (!genAI) {
+    console.log('🤖 Using mock job match data (no API key)');
     cacheService.cacheJobMatch(resumeText, jobDescription, mockResult);
     return mockResult;
   }
@@ -232,24 +235,9 @@ export const compareWithJobDescription = async (resumeText: string, jobDescripti
     return comparisonResult;
   } catch (error) {
     console.error('Error comparing with job description:', error);
-    const fallback = {
-      match_score: 70,
-      matching_skills: ["Communication", "Leadership", "Project Management"],
-      missing_skills: ["Technical Skills", "Industry Experience"],
-      recommendations: [
-        {
-          category: "Critical Keywords",
-          suggestion: "Add more technical skills relevant to the role",
-          priority: "high"
-        }
-      ],
-      keyword_analysis: {
-        matched_keywords: ["management", "leadership"],
-        missing_keywords: ["technical", "software"]
-      }
-    };
-    cacheService.cacheJobMatch(resumeText, jobDescription, fallback);
-    return fallback;
+    console.log('🤖 Falling back to mock job match data due to API error');
+    cacheService.cacheJobMatch(resumeText, jobDescription, mockResult);
+    return mockResult;
   }
 };
 
@@ -263,25 +251,27 @@ export const generateRestructureSuggestions = async (resumeText: string, analysi
     return cached;
   }
 
-  if (!genAI) {
-    const mockResult = {
-      restructure_points: [
-        {
-          id: 'summary',
-          category: 'Professional Summary',
-          priority: 'high',
-          current: 'Generic summary or objective statement',
-          suggested: '[Your Years] [Your Role] with proven track record of [specific achievement with numbers]',
-          reason: 'Recruiters spend 6 seconds on initial scan - summary must immediately show value',
-          example: 'Senior Software Engineer with 7+ years delivering scalable web applications'
-        }
-      ],
-      expected_impact: {
-        interview_callbacks: 40,
-        ats_pass_rate: 60,
-        overall_score_increase: 25
+  const mockResult = {
+    restructure_points: [
+      {
+        id: 'summary',
+        category: 'Professional Summary',
+        priority: 'high',
+        current: 'Generic summary or objective statement',
+        suggested: '[Your Years] [Your Role] with proven track record of [specific achievement with numbers]',
+        reason: 'Recruiters spend 6 seconds on initial scan - summary must immediately show value',
+        example: 'Senior Software Engineer with 7+ years delivering scalable web applications'
       }
-    };
+    ],
+    expected_impact: {
+      interview_callbacks: 40,
+      ats_pass_rate: 60,
+      overall_score_increase: 25
+    }
+  };
+
+  if (!genAI) {
+    console.log('🤖 Using mock restructure data (no API key)');
     cacheService.set(cacheKey, mockResult, 2 * 60 * 60 * 1000); // 2 hours
     return mockResult;
   }
@@ -314,26 +304,9 @@ export const generateRestructureSuggestions = async (resumeText: string, analysi
     return restructureResult;
   } catch (error) {
     console.error('Error generating restructure suggestions:', error);
-    const fallback = {
-      restructure_points: [
-        {
-          id: 'summary',
-          category: 'Professional Summary',
-          priority: 'high',
-          current: 'Generic summary statement',
-          suggested: 'Add specific achievements and quantified results',
-          reason: 'Recruiters spend 6 seconds on initial scan',
-          example: 'Senior Software Engineer with 7+ years delivering scalable applications'
-        }
-      ],
-      expected_impact: {
-        interview_callbacks: 40,
-        ats_pass_rate: 60,
-        overall_score_increase: 25
-      }
-    };
-    cacheService.set(cacheKey, fallback, 2 * 60 * 60 * 1000);
-    return fallback;
+    console.log('🤖 Falling back to mock restructure data due to API error');
+    cacheService.set(cacheKey, mockResult, 2 * 60 * 60 * 1000);
+    return mockResult;
   }
 };
 
