@@ -5,8 +5,9 @@ import LandingPage from './components/LandingPage';
 import UploadPage from './components/UploadPage';
 import AnalysisDashboard from './components/AnalysisDashboard';
 import AuthModal from './components/AuthModal';
-import LoadingAnalysis from './components/LoadingAnalysis';
+import OptimizedLoadingAnalysis from './components/OptimizedLoadingAnalysis';
 import SubscriptionModal from './components/SubscriptionModal';
+import PerformanceDashboard from './components/PerformanceDashboard';
 
 type AppState = 'landing' | 'upload' | 'analyzing' | 'results';
 
@@ -177,7 +178,7 @@ function App() {
           />
         );
       case 'analyzing':
-        return <LoadingAnalysis onComplete={handleAnalysisComplete} />;
+        return <OptimizedLoadingAnalysis onComplete={handleAnalysisComplete} />;
       case 'results':
         return <AnalysisDashboard results={analysisResults} onBack={handleBackToUpload} />;
       default:
@@ -204,6 +205,9 @@ function App() {
           description="You've reached your free analysis limit. Upgrade to get 20 analyses per day."
         />
       )}
+
+      {/* Performance Dashboard - only shows in dev or for admins */}
+      <PerformanceDashboard />
     </div>
   );
 }
