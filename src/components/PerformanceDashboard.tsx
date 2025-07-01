@@ -36,7 +36,7 @@ const PerformanceDashboard: React.FC = () => {
     alert('Cache cleared successfully!');
   };
 
-  return (
+/*  return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm">
         <div className="flex items-center justify-between mb-3">
@@ -52,9 +52,9 @@ const PerformanceDashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3">*/
           {/* Cache Hit Rate */}
-          <div className="flex items-center justify-between">
+          /*<div className="flex items-center justify-between">
             <div className="flex items-center">
               <Zap className="w-4 h-4 text-green-600 mr-2" />
               <span className="text-sm text-gray-700">Cache Hit Rate</span>
@@ -64,7 +64,7 @@ const PerformanceDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Average Response Time */}
+          {/* Average Response Time }
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Clock className="w-4 h-4 text-blue-600 mr-2" />
@@ -75,7 +75,7 @@ const PerformanceDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Tokens Saved */}
+          {/* Tokens Saved }
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <TrendingUp className="w-4 h-4 text-purple-600 mr-2" />
@@ -86,7 +86,7 @@ const PerformanceDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Cost Savings */}
+          {/* Cost Savings }
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <DollarSign className="w-4 h-4 text-green-600 mr-2" />
@@ -97,7 +97,7 @@ const PerformanceDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Cache Stats */}
+          {/* Cache Stats }
           <div className="pt-2 border-t border-gray-200">
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>API Calls: {cacheReport.apiCalls}</span>
@@ -106,7 +106,7 @@ const PerformanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Performance Indicator */}
+        {/* Performance Indicator }
         <div className="mt-3 pt-2 border-t border-gray-200">
           <div className="flex items-center justify-center">
             <div className={`w-2 h-2 rounded-full mr-2 ${
@@ -121,7 +121,7 @@ const PerformanceDashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+  );*/
 };
 
 export default PerformanceDashboard;
