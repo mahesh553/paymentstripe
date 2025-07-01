@@ -4,13 +4,13 @@ import { useSubscription } from './context/SubscriptionContext';
 import LandingPage from './components/LandingPage';
 import UploadPage from './components/UploadPage';
 import AnalysisDashboard from './components/AnalysisDashboard';
-import ResumeEditor from './components/ResumeEditor';
+// import ResumeEditor from './components/ResumeEditor'; // COMMENTED OUT
 import AuthModal from './components/AuthModal';
 import OptimizedLoadingAnalysis from './components/OptimizedLoadingAnalysis';
 import SubscriptionModal from './components/SubscriptionModal';
 import PerformanceDashboard from './components/PerformanceDashboard';
 
-type AppState = 'landing' | 'upload' | 'analyzing' | 'results' | 'editor';
+type AppState = 'landing' | 'upload' | 'analyzing' | 'results'; // | 'editor'; // COMMENTED OUT
 
 function App() {
   const [currentState, setCurrentState] = useState<AppState>('landing');
@@ -18,7 +18,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
-  const [currentResumeData, setCurrentResumeData] = useState<any>(null);
+  // const [currentResumeData, setCurrentResumeData] = useState<any>(null); // COMMENTED OUT
   const { user, loading } = useAuth();
   const { subscription, trackFeatureUsage, getRemainingUsage } = useSubscription();
 
@@ -27,7 +27,7 @@ function App() {
     if (!user && !loading) {
       setCurrentState('landing');
       setAnalysisResults(null);
-      setCurrentResumeData(null);
+      // setCurrentResumeData(null); // COMMENTED OUT
       setShowAuthModal(false);
       setShowSubscriptionModal(false);
       setPendingAnalysis(false);
@@ -132,6 +132,8 @@ function App() {
     setAnalysisResults(null);
   };
 
+  // COMMENTED OUT - Edit Resume functionality
+  /*
   const handleEditResume = () => {
     // Get current resume data from session storage
     const storedResumeData = sessionStorage.getItem('currentResume');
@@ -150,6 +152,7 @@ function App() {
     setCurrentState('results');
     setCurrentResumeData(null);
   };
+  */
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
@@ -206,9 +209,11 @@ function App() {
           <AnalysisDashboard 
             results={analysisResults} 
             onBack={handleBackToUpload}
-            onEditResume={handleEditResume}
+            // onEditResume={handleEditResume} // COMMENTED OUT
           />
         );
+      // COMMENTED OUT - Editor case
+      /*
       case 'editor':
         return (
           <ResumeEditor
@@ -216,6 +221,7 @@ function App() {
             resumeData={currentResumeData}
           />
         );
+      */
       default:
         return <LandingPage onGetStarted={handleGetStarted} />;
     }
