@@ -1,14 +1,12 @@
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Testing
-/coverage
-
-# Production
-/build
-/dist
+# Production builds
+dist/
+build/
 
 # Environment variables
 .env
@@ -17,11 +15,24 @@ node_modules/
 .env.test.local
 .env.production.local
 
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+logs
+*.log
 
 # Runtime data
 pids
@@ -31,17 +42,9 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
 
 # Dependency directories
-node_modules/
 jspm_packages/
-
-# TypeScript cache
-*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -64,60 +67,34 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-.env.test
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
-# Next.js build output
+# next.js build output
 .next
 
-# Nuxt.js build / generate output
+# nuxt.js build output
 .nuxt
-dist
 
-# Gatsby files
-.cache/
-public
+# vuepress build output
+.vuepress/dist
 
-# Vite build output
-dist/
+# Serverless directories
+.serverless
 
-# Rollup build output
-dist/
+# FuseBox cache
+.fusebox/
 
-# Storybook build outputs
-.out
-.storybook-out
+# DynamoDB Local files
+.dynamodb/
 
-# Temporary folders
-tmp/
-temp/
+# Bolt-specific files to prevent migration prompts
+.bolt/db-complete.marker
+.bolt/schema.lock
+.bolt/config.json
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Supabase
-.branches
-.temp
-.import
-supabase/.branches
-supabase/.temp
-
-# Database backups
+# Database backups (optional - remove if you want to track them)
 database-backups/
-*.sql.backup
-
-# Local Supabase
-supabase/.temp/
+database-schema/
+complete-backup/
