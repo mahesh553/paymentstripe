@@ -485,6 +485,7 @@ const ResumeEditor: React.FC<ResumeEditorProps> = ({ onBack, resumeData }) => {
                         init={{
                           height: 400,
                           menubar: false,
+                          readonly: false,
                           plugins: [
                             'lists', 'link', 'autolink', 'charmap', 'preview',
                             'searchreplace', 'visualblocks', 'code', 'fullscreen',
