@@ -75,7 +75,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
                   className="flex items-center space-x-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-pointer hover:bg-gray-400 hover:text-gray-600 transition-all"
                 >
                   <Crown className="w-4 h-4" />
-                  <span>Upgrade to Upload New</span>
+                  <span>Upgrade to Upload New Resume</span>
                 </button>
               )}
 
