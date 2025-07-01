@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb, Star, FileText, Briefcase, BarChart3, Eye, Crown, Lock } from 'lucide-react';
 import KeywordHighlighter from './KeywordHighlighter';
 import JobMatchValidator from './JobMatchValidator';
