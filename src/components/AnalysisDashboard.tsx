@@ -103,7 +103,7 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
   >
     <Crown className="w-4 h-4" />
     <span>
-      {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'} // <-- RECOMMENDED TEXT for consistency
+      {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'} 
     </span>
   </button>
 )}
