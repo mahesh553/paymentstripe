@@ -40,6 +40,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const canUseKeywordAnalysis = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('keyword_analysis') > 0;
   const canUseAISuggestions = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('keyword_analysis') > 0;
 
+  // Check if user is free tier with exceeded quota
+  const isFreeUserQuotaExceeded = !subscription?.isPremium && !subscription?.isAdmin && 
+    getRemainingUsage('job_matching') === 0 && getRemainingUsage('keyword_analysis') === 0;
+
   const tabs = [
     { 
       id: 'job-match', 
@@ -114,7 +118,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
             <p className={canUseJobMatching ? 'text-green-100' : 'text-gray-200'}>
               {canUseJobMatching 
                 ? "Get the most value by analyzing your resume against specific job descriptions. This is where generic advice becomes personalized strategy."
-                : "Upgrade to Premium to unlock job-specific analysis and personalized optimization strategies."
+                : isFreeUserQuotaExceeded
+                  ? "You've reached your free monthly limit for job-specific analysis. Upgrade to Premium for unlimited access."
+                  : "Upgrade to Premium to unlock job-specific analysis and personalized optimization strategies."
               }
             </p>
           </div>
@@ -133,11 +139,33 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               onClick={() => setShowUpgradeModal(true)}
               className="bg-white text-gray-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
-              Upgrade to Unlock
+              {isFreeUserQuotaExceeded ? 'Upgrade to Continue' : 'Upgrade to Unlock'}
             </button>
           </div>
         )}
       </div>
+
+      {/* Quota Exceeded Warning for Free Users */}
+      {isFreeUserQuotaExceeded && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-start">
+            <Crown className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-yellow-900 font-semibold mb-1">Free Monthly Limit Reached</h3>
+              <p className="text-yellow-800 text-sm mb-3">
+                You can still view your previous analysis results, but premium features like job-specific analysis 
+                and keyword optimization are now limited. Upgrade to Premium for unlimited access.
+              </p>
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-700 transition-colors"
+              >
+                Upgrade to Premium
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overall Score Card */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
@@ -276,24 +304,27 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Preview Section */}
+                {/* Disabled State for Free Users with Exceeded Quota */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold text-gray-700 flex items-center">
                       <Lock className="w-6 h-6 mr-2" />
-                      🎯 Job Analysis - Premium Feature
+                      🎯 Job Analysis - {isFreeUserQuotaExceeded ? 'Monthly Limit Reached' : 'Premium Feature'}
                     </h3>
                     <button
                       onClick={handlePreviewClick}
                       className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center"
                     >
                       <Crown className="w-4 h-4 mr-2" />
-                      Unlock Full Analysis
+                      {isFreeUserQuotaExceeded ? 'Upgrade to Continue' : 'Unlock Full Analysis'}
                     </button>
                   </div>
                   
                   <p className="text-gray-600 mb-4">
-                    Job-specific analysis is available with Premium. Here's what you're missing:
+                    {isFreeUserQuotaExceeded 
+                      ? "You've used your free monthly job analysis. Upgrade to Premium for unlimited job-specific analysis."
+                      : "Job-specific analysis is available with Premium. Here's what you're missing:"
+                    }
                   </p>
 
                   {/* Preview Benefits */}
@@ -319,7 +350,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   <div className="bg-green-600 rounded-lg p-4 text-white text-center">
                     <h4 className="font-bold mb-2">🚀 Unlock Job-Specific Analysis</h4>
                     <p className="text-green-100 text-sm mb-3">
-                      Get personalized insights for every job application with Premium
+                      {isFreeUserQuotaExceeded 
+                        ? "Continue analyzing your resume against specific job descriptions with Premium"
+                        : "Get personalized insights for every job application with Premium"
+                      }
                     </p>
                     <button
                       onClick={handlePreviewClick}
@@ -439,18 +473,21 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-700 mb-2">
-                  Keyword Analysis - Premium Feature
+                  Keyword Analysis - {isFreeUserQuotaExceeded ? 'Monthly Limit Reached' : 'Premium Feature'}
                 </h3>
                 
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Unlock advanced keyword analysis to optimize your resume for ATS systems and improve your job search success.
+                  {isFreeUserQuotaExceeded 
+                    ? "You've used your free monthly keyword analysis. Upgrade to Premium for unlimited access to advanced keyword optimization."
+                    : "Unlock advanced keyword analysis to optimize your resume for ATS systems and improve your job search success."
+                  }
                 </p>
 
                 <button
                   onClick={() => setShowUpgradeModal(true)}
                   className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
                 >
-                  Upgrade to Premium
+                  {isFreeUserQuotaExceeded ? 'Upgrade to Continue' : 'Upgrade to Premium'}
                 </button>
               </div>
             )
@@ -520,18 +557,21 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 </div>
                 
                 <h3 className="text-xl font-bold text-gray-700 mb-2">
-                  AI Suggestions - Premium Feature
+                  AI Suggestions - {isFreeUserQuotaExceeded ? 'Monthly Limit Reached' : 'Premium Feature'}
                 </h3>
                 
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Get personalized improvement recommendations powered by AI and based on current hiring trends.
+                  {isFreeUserQuotaExceeded 
+                    ? "You've used your free monthly AI suggestions. Upgrade to Premium for unlimited personalized recommendations."
+                    : "Get personalized improvement recommendations powered by AI and based on current hiring trends."
+                  }
                 </p>
 
                 <button
                   onClick={() => setShowUpgradeModal(true)}
                   className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
                 >
-                  Upgrade to Premium
+                  {isFreeUserQuotaExceeded ? 'Upgrade to Continue' : 'Upgrade to Premium'}
                 </button>
               </div>
             )
@@ -544,8 +584,11 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
         <SubscriptionModal
           onClose={() => setShowUpgradeModal(false)}
           feature="job_matching"
-          title="Unlock Premium Features"
-          description="Get access to job-specific analysis, keyword optimization, and AI-powered suggestions"
+          title={isFreeUserQuotaExceeded ? "Monthly Limit Reached" : "Unlock Premium Features"}
+          description={isFreeUserQuotaExceeded 
+            ? "You've used your free monthly analysis limit. Upgrade to Premium for unlimited access to all features."
+            : "Get access to job-specific analysis, keyword optimization, and AI-powered suggestions"
+          }
         />
       )}
     </div>

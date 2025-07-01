@@ -36,6 +36,10 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
 
   const canUploadNew = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('resume_analysis') > 0;
   const canUseRestructure = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('restructure_guide') > 0;
+  
+  // Check if user is free tier with exceeded quota
+  const isFreeUserQuotaExceeded = !subscription?.isPremium && !subscription?.isAdmin && 
+    getRemainingUsage('restructure_guide') === 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,9 +92,12 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
                 <button
                   onClick={() => setShowUpgradeModal(true)}
                   className="flex items-center space-x-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-pointer hover:bg-gray-400 hover:text-gray-600 transition-all"
+                  title={isFreeUserQuotaExceeded ? "Monthly limit reached - Upgrade to continue" : "Premium feature - Upgrade to unlock"}
                 >
                   <Crown className="w-4 h-4" />
-                  <span>Restructure Guide (Premium)</span>
+                  <span>
+                    {isFreeUserQuotaExceeded ? 'Restructure (Limit Reached)' : 'Restructure Guide (Premium)'}
+                  </span>
                 </button>
               )}
               
@@ -139,9 +146,12 @@ const AnalysisDashboard: React.FC<AnalysisDashboardProps> = ({ results, onBack }
       {showUpgradeModal && (
         <SubscriptionModal
           onClose={() => setShowUpgradeModal(false)}
-          feature="resume_analysis"
-          title="Upgrade to Continue"
-          description="You've reached your free analysis limit. Upgrade to Premium for unlimited resume uploads and access to all features."
+          feature={isFreeUserQuotaExceeded ? "restructure_guide" : "resume_analysis"}
+          title={isFreeUserQuotaExceeded ? "Monthly Limit Reached" : "Upgrade to Continue"}
+          description={isFreeUserQuotaExceeded 
+            ? "You've reached your free monthly limit for premium features. Upgrade to Premium for unlimited access to restructure guides and all features."
+            : "You've reached your free analysis limit. Upgrade to Premium for unlimited resume uploads and access to all features."
+          }
         />
       )}
     </div>
