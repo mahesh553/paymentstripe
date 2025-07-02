@@ -358,7 +358,54 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
           )}
         </div>
       )}
-
+{/* Tailored Bullet Points Generator */}
+<div className="bg-purple-50 border border-purple-200 rounded-xl p-6 mt-8">
+  <h4 className="text-xl font-bold text-purple-900 mb-4 flex items-center">
+    <Sparkles className="w-5 h-5 mr-2" />
+    AI-Powered Bullet Point Generator
+  </h4>
+  
+  <p className="text-purple-800 mb-4">
+    Get custom bullet points that bridge your experience with the job requirements:
+  </p>
+  
+  <button
+    onClick={generateTailoredBullets}
+    disabled={isGenerating || !matchResults}
+    className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center"
+  >
+    {isGenerating ? (
+      <>
+        <Loader2 className="animate-spin mr-2" />
+        Generating...
+      </>
+    ) : (
+      <>
+        <Sparkles className="w-4 h-4 mr-2" />
+        Generate Tailored Bullet Points
+      </>
+    )}
+  </button>
+  
+  {tailoredBullets.length > 0 && (
+    <div className="mt-6 bg-white p-4 rounded-lg border border-purple-100">
+      <h5 className="font-bold text-purple-800 mb-3">Suggested Bullet Points:</h5>
+      <ul className="space-y-2">
+        {tailoredBullets.map((bullet, index) => (
+          <li key={index} className="flex items-start">
+            <span className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-2.5 mr-3 flex-shrink-0"></span>
+            <span dangerouslySetInnerHTML={{__html: marked(bullet)}} />
+          </li>
+        ))}
+      </ul>
+      
+      <div className="mt-4 text-sm text-purple-700">
+        <Clipboard className="inline mr-2" size={14} />
+        <em>Click to copy any bullet point</em>
+      </div>
+    </div>
+  )}
+</div>
       {/* Tips */}
       <div className="bg-green-50 rounded-xl p-6 border border-green-200">
         <h4 className="text-lg font-semibold text-green-900 mb-3">💡 Pro Tips for Job Matching</h4>
