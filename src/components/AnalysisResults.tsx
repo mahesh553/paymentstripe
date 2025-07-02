@@ -2,25 +2,31 @@ import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb, Star, FileText, Briefcase, BarChart3, Eye, Crown, Lock } from 'lucide-react';
 import KeywordHighlighter from './KeywordHighlighter';
 import JobMatchValidator from './JobMatchValidator';
-import FeatureGate from './FeatureGate'; // Make sure this is correctly used if needed elsewhere
 import SubscriptionModal from './SubscriptionModal';
 import { useSubscription } from '../context/SubscriptionContext';
 
 interface AnalysisResultsProps {
-  results: any; // This likely contains the general resume analysis (overall_score, sections, etc.)
-  // If you are passing jobMatchResults as a prop *from the parent* (e.g., AnalysisDashboard)
-  // then include it here, otherwise, it should only be managed by the component's state.
-  // For this fix, we assume jobMatchResults is primarily managed within this component's state.
+  results: any; // This prop can initially be null or undefined
 }
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const [activeTab, setActiveTab] = useState('job-match');
-  // Initialize jobMatchResults to an object with a default match_score
-  // This prevents 'null' errors when accessing properties
   const [jobMatchResults, setJobMatchResults] = useState<any>({ match_score: null });
   const [jobDescription, setJobDescription] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { subscription, getRemainingUsage } = useSubscription();
+
+  // --- ADD THIS CONDITIONAL RENDER AT THE TOP ---
+  if (!results) {
+    // Optionally, render a loading spinner or a message
+    return (
+      <div className="flex justify-center items-center h-48 text-gray-500">
+        Loading analysis results...
+      </div>
+    );
+  }
+  // ---------------------------------------------
+
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -76,13 +82,11 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
     }
   ];
 
-  // Fix: Directly use jobMatchResults.match_score and check for its existence
   const displayJobMatchScore = jobMatchResults?.match_score !== null && jobMatchResults?.match_score !== undefined
     ? jobMatchResults.match_score
-    : null; // Set to null if not available yet
+    : null;
 
   const handleJobMatchComplete = (matchResults: any, description: string) => {
-    // Ensure matchResults always has a match_score, even if 0 or default
     setJobMatchResults({ ...matchResults, match_score: matchResults.match_score || 0 });
     setJobDescription(description);
   };
@@ -99,19 +103,18 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
     }
   };
 
-  // Mock preview data for job matching (used for locked states)
-  // This data is separate from actual analysis results.
-  const previewJobMatchData = {
-    match_score: 72,
-    matching_skills: ["Project Management", "Leadership", "Communication"],
-    missing_skills: ["Python", "Data Analysis", "Machine Learning"],
-    preview_insights: [
-      "Your resume matches 60% of the required keywords",
-      "Strong alignment with leadership requirements",
-      "Missing 3 critical technical skills",
-      "Experience section could be better optimized"
-    ]
-  };
+  // Mock preview data (kept for logic using previewJobMatchData if needed elsewhere)
+  // const previewJobMatchData = {
+  //   match_score: 72,
+  //   matching_skills: ["Project Management", "Leadership", "Communication"],
+  //   missing_skills: ["Python", "Data Analysis", "Machine Learning"],
+  //   preview_insights: [
+  //     "Your resume matches 60% of the required keywords",
+  //     "Strong alignment with leadership requirements",
+  //     "Missing 3 critical technical skills",
+  //     "Experience section could be better optimized"
+  //   ]
+  // };
 
   return (
     <div className="space-y-6">
@@ -134,7 +137,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
           </div>
           <div className="text-right">
             <div className="text-4xl font-bold">
-              {/* Corrected: Only display jobMatchResults.match_score if available and feature is enabled */}
               {canUseJobMatching && displayJobMatchScore !== null ? `${displayJobMatchScore}%` : '—'}
             </div>
             <div className={`text-sm ${canUseJobMatching ? 'text-green-100' : 'text-gray-200'}`}>
@@ -181,6 +183,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Overall Score */}
           <div className="text-center">
+            {/* The error was here, trying to read results.overall_score when results was null */}
             <div className={`text-4xl font-bold ${getScoreColor(results.overall_score)} mb-2`}>
               {results.overall_score}
             </div>
@@ -195,7 +198,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
           {/* ATS Compatibility */}
           <div className="text-center">
-            {/* Added nullish coalescing to safely default if results.ats_score is null/undefined */}
             <div className={`text-4xl font-bold ${getScoreColor(results.ats_score ?? 75)} mb-2`}>
               {results.ats_score ?? 75}
             </div>
@@ -210,7 +212,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
           {/* Industry Alignment */}
           <div className="text-center">
-            {/* Added nullish coalescing to safely default if results.industry_score is null/undefined */}
             <div className={`text-4xl font-bold ${getScoreColor(results.industry_score ?? 70)} mb-2`}>
               {results.industry_score ?? 70}
             </div>
@@ -231,7 +232,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               <CheckCircle2 className="w-5 h-5 text-green-600 mr-2" />
               <span className="font-semibold text-green-800">Strong Points</span>
             </div>
-            {/* Use optional chaining and nullish coalescing for safety */}
             <div className="text-2xl font-bold text-green-600">{results.strengths?.length ?? 0}</div>
           </div>
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
@@ -312,7 +312,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   onAnalysisComplete={handleJobMatchComplete}
                   existingResults={jobMatchResults}
                   existingJobDescription={jobDescription}
-                  // Pass the general results so JobMatchValidator can use resumeText from it if needed
                   generalAnalysisResults={results}
                 />
               </div>
@@ -390,7 +389,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   Your Resume Strengths
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* Added optional chaining */}
                   {results.strengths?.map((strength: string, index: number) => (
                     <div key={index} className="flex items-start bg-green-50 p-3 rounded-lg border border-green-200">
                       <CheckCircle2 className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -407,7 +405,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   Quick Wins (High Impact, Low Effort)
                 </h3>
                 <div className="space-y-3">
-                  {/* Added optional chaining and a fallback array */}
                   {(results.quick_wins || [
                     "Add 2-3 quantified achievements to your experience section",
                     "Include 3-5 industry-specific keywords in your skills section",
@@ -430,7 +427,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   Strategic Improvements
                 </h3>
                 <div className="space-y-2">
-                  {/* Added optional chaining */}
                   {results.improvements?.map((improvement: string, index: number) => (
                     <div key={index} className="flex items-start bg-red-50 p-3 rounded-lg border border-red-200">
                       <AlertCircle className="w-4 h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -444,7 +440,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
           {activeTab === 'sections' && (
             <div className="space-y-6">
-              {/* Added optional chaining for results.sections */}
               {Object.entries(results.sections || {}).map(([sectionName, section]: [string, any]) => (
                 <div key={sectionName} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -528,7 +523,6 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Priority Improvements</h4>
                   <div className="space-y-4">
-                    {/* Added optional chaining and a fallback array */}
                     {(results.priority_improvements || [
                       {
                         section: "Professional Summary",
@@ -602,7 +596,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
       {showUpgradeModal && (
         <SubscriptionModal
           onClose={() => setShowUpgradeModal(false)}
-          feature="job_matching" // This could be dynamic based on which tab triggered the modal
+          feature="job_matching"
           title={isFreeUserQuotaExceeded ? "Monthly Limit Reached" : "Unlock Premium Features"}
           description={isFreeUserQuotaExceeded
             ? "You've used your free monthly analysis limit. Upgrade to Premium for unlimited access to all features."
