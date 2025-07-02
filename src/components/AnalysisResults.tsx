@@ -2,31 +2,20 @@ import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Target, Lightbulb, Star, FileText, Briefcase, BarChart3, Eye, Crown, Lock } from 'lucide-react';
 import KeywordHighlighter from './KeywordHighlighter';
 import JobMatchValidator from './JobMatchValidator';
+import FeatureGate from './FeatureGate';
 import SubscriptionModal from './SubscriptionModal';
 import { useSubscription } from '../context/SubscriptionContext';
 
 interface AnalysisResultsProps {
-  results: any; // This prop can initially be null or undefined
+  results: any;
 }
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const [activeTab, setActiveTab] = useState('job-match');
-  const [jobMatchResults, setJobMatchResults] = useState<any>({ match_score: null });
+  const [jobMatchResults, setJobMatchResults] = useState<any>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { subscription, getRemainingUsage } = useSubscription();
-
-  // --- ADD THIS CONDITIONAL RENDER AT THE TOP ---
-  if (!results) {
-    // Optionally, render a loading spinner or a message
-    return (
-      <div className="flex justify-center items-center h-48 text-gray-500">
-        Loading analysis results...
-      </div>
-    );
-  }
-  // ---------------------------------------------
-
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -52,42 +41,42 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const canUseAISuggestions = subscription?.isPremium || subscription?.isAdmin || getRemainingUsage('keyword_analysis') > 0;
 
   // Check if user is free tier with exceeded quota
-  const isFreeUserQuotaExceeded = !subscription?.isPremium && !subscription?.isAdmin &&
+  const isFreeUserQuotaExceeded = !subscription?.isPremium && !subscription?.isAdmin && 
     getRemainingUsage('job_matching') === 0 && getRemainingUsage('keyword_analysis') === 0;
 
   const tabs = [
-    {
-      id: 'job-match',
-      name: '🎯 Job-Specific Analysis',
-      icon: <Briefcase className="w-4 h-4" />,
+    { 
+      id: 'job-match', 
+      name: '🎯 Job-Specific Analysis', 
+      icon: <Briefcase className="w-4 h-4" />, 
       priority: true,
       premium: true,
       disabled: !canUseJobMatching
     },
     { id: 'overview', name: 'Overview', icon: <FileText className="w-4 h-4" /> },
     { id: 'sections', name: 'Section Analysis', icon: <Target className="w-4 h-4" /> },
-    {
-      id: 'keywords',
-      name: 'Keywords',
+    { 
+      id: 'keywords', 
+      name: 'Keywords', 
       icon: <Star className="w-4 h-4" />,
       premium: true,
       disabled: !canUseKeywordAnalysis
     },
-    {
-      id: 'improvement',
-      name: 'AI Suggestions',
+    { 
+      id: 'improvement', 
+      name: 'AI Suggestions', 
       icon: <Lightbulb className="w-4 h-4" />,
       premium: true,
       disabled: !canUseAISuggestions
     }
   ];
 
-  const displayJobMatchScore = jobMatchResults?.match_score !== null && jobMatchResults?.match_score !== undefined
-    ? jobMatchResults.match_score
-    : null;
+  // Check if job matching has been performed
+  const hasJobMatchScore = jobMatchResults?.match_score !== null && jobMatchResults?.match_score !== undefined;
+  const displayJobMatchScore = hasJobMatchScore ? jobMatchResults.match_score : (results.job_match_score || null);
 
   const handleJobMatchComplete = (matchResults: any, description: string) => {
-    setJobMatchResults({ ...matchResults, match_score: matchResults.match_score || 0 });
+    setJobMatchResults(matchResults);
     setJobDescription(description);
   };
 
@@ -103,18 +92,18 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
     }
   };
 
-  // Mock preview data (kept for logic using previewJobMatchData if needed elsewhere)
-  // const previewJobMatchData = {
-  //   match_score: 72,
-  //   matching_skills: ["Project Management", "Leadership", "Communication"],
-  //   missing_skills: ["Python", "Data Analysis", "Machine Learning"],
-  //   preview_insights: [
-  //     "Your resume matches 60% of the required keywords",
-  //     "Strong alignment with leadership requirements",
-  //     "Missing 3 critical technical skills",
-  //     "Experience section could be better optimized"
-  //   ]
-  // };
+  // Mock preview data for job matching
+  const previewJobMatchData = {
+    match_score: 72,
+    matching_skills: ["Project Management", "Leadership", "Communication"],
+    missing_skills: ["Python", "Data Analysis", "Machine Learning"],
+    preview_insights: [
+      "Your resume matches 60% of the required keywords",
+      "Strong alignment with leadership requirements",
+      "Missing 3 critical technical skills",
+      "Experience section could be better optimized"
+    ]
+  };
 
   return (
     <div className="space-y-6">
@@ -127,7 +116,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               {!canUseJobMatching && <Lock className="w-5 h-5 ml-2" />}
             </h2>
             <p className={canUseJobMatching ? 'text-green-100' : 'text-gray-200'}>
-              {canUseJobMatching
+              {canUseJobMatching 
                 ? "Get the most value by analyzing your resume against specific job descriptions. This is where generic advice becomes personalized strategy."
                 : isFreeUserQuotaExceeded
                   ? "You've reached your free monthly limit for job-specific analysis. Upgrade to Premium for unlimited access."
@@ -137,10 +126,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
           </div>
           <div className="text-right">
             <div className="text-4xl font-bold">
-              {canUseJobMatching && displayJobMatchScore !== null ? `${displayJobMatchScore}%` : '—'}
+              {displayJobMatchScore && canUseJobMatching ? `${displayJobMatchScore}%` : '—'}
             </div>
             <div className={`text-sm ${canUseJobMatching ? 'text-green-100' : 'text-gray-200'}`}>
-              {canUseJobMatching && displayJobMatchScore !== null ? 'Job Match Score' : 'Premium Feature'}
+              {displayJobMatchScore && canUseJobMatching ? 'Job Match Score' : 'Premium Feature'}
             </div>
           </div>
         </div>
@@ -164,7 +153,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
             <div className="flex-1">
               <h3 className="text-yellow-900 font-semibold mb-1">Free Monthly Limit Reached</h3>
               <p className="text-yellow-800 text-sm mb-3">
-                You can still view your previous analysis results, but premium features like job-specific analysis
+                You can still view your previous analysis results, but premium features like job-specific analysis 
                 and keyword optimization are now limited. Upgrade to Premium for unlimited access.
               </p>
               <button
@@ -183,13 +172,12 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Overall Score */}
           <div className="text-center">
-            {/* The error was here, trying to read results.overall_score when results was null */}
             <div className={`text-4xl font-bold ${getScoreColor(results.overall_score)} mb-2`}>
               {results.overall_score}
             </div>
             <div className="text-sm text-gray-500 mb-4">Resume Quality</div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
+              <div 
                 className={`h-3 rounded-full transition-all duration-500 ${getScoreBarColor(results.overall_score)}`}
                 style={{ width: `${results.overall_score}%` }}
               ></div>
@@ -198,28 +186,28 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
 
           {/* ATS Compatibility */}
           <div className="text-center">
-            <div className={`text-4xl font-bold ${getScoreColor(results.ats_score ?? 75)} mb-2`}>
-              {results.ats_score ?? 75}
+            <div className={`text-4xl font-bold ${getScoreColor(results.ats_score || 75)} mb-2`}>
+              {results.ats_score || 75}
             </div>
             <div className="text-sm text-gray-500 mb-4">ATS Compatibility</div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full transition-all duration-500 ${getScoreBarColor(results.ats_score ?? 75)}`}
-                style={{ width: `${results.ats_score ?? 75}%` }}
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${getScoreBarColor(results.ats_score || 75)}`}
+                style={{ width: `${results.ats_score || 75}%` }}
               ></div>
             </div>
           </div>
 
           {/* Industry Alignment */}
           <div className="text-center">
-            <div className={`text-4xl font-bold ${getScoreColor(results.industry_score ?? 70)} mb-2`}>
-              {results.industry_score ?? 70}
+            <div className={`text-4xl font-bold ${getScoreColor(results.industry_score || 70)} mb-2`}>
+              {results.industry_score || 70}
             </div>
             <div className="text-sm text-gray-500 mb-4">Industry Alignment</div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full transition-all duration-500 ${getScoreBarColor(results.industry_score ?? 70)}`}
-                style={{ width: `${results.industry_score ?? 70}%` }}
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${getScoreBarColor(results.industry_score || 70)}`}
+                style={{ width: `${results.industry_score || 70}%` }}
               ></div>
             </div>
           </div>
@@ -232,28 +220,28 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               <CheckCircle2 className="w-5 h-5 text-green-600 mr-2" />
               <span className="font-semibold text-green-800">Strong Points</span>
             </div>
-            <div className="text-2xl font-bold text-green-600">{results.strengths?.length ?? 0}</div>
+            <div className="text-2xl font-bold text-green-600">{results.strengths?.length || 0}</div>
           </div>
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
             <div className="flex items-center mb-2">
               <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
               <span className="font-semibold text-yellow-800">Quick Wins</span>
             </div>
-            <div className="text-2xl font-bold text-yellow-600">{results.quick_wins?.length ?? 3}</div>
+            <div className="text-2xl font-bold text-yellow-600">{results.quick_wins?.length || 3}</div>
           </div>
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div className="flex items-center mb-2">
               <Lightbulb className="w-5 h-5 text-gray-600 mr-2" />
               <span className="font-semibold text-gray-800">AI Suggestions</span>
             </div>
-            <div className="text-2xl font-bold text-gray-600">{results.recommendations?.length ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-600">{results.recommendations?.length || 0}</div>
           </div>
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <div className="flex items-center mb-2">
               <BarChart3 className="w-5 h-5 text-green-600 mr-2" />
               <span className="font-semibold text-green-800">Potential Impact</span>
             </div>
-            <div className="text-2xl font-bold text-green-600">+{results.potential_improvement ?? 25}%</div>
+            <div className="text-2xl font-bold text-green-600">+{results.potential_improvement || 25}%</div>
           </div>
         </div>
       </div>
@@ -304,15 +292,14 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                     <strong>This is where generic resume advice becomes personalized strategy.</strong>
                   </p>
                   <p className="text-sm text-gray-600">
-                    Paste any job description below to get specific insights on keyword gaps,
+                    Paste any job description below to get specific insights on keyword gaps, 
                     rephrasing suggestions, and exact improvements needed for that role.
                   </p>
                 </div>
-                <JobMatchValidator
+                <JobMatchValidator 
                   onAnalysisComplete={handleJobMatchComplete}
                   existingResults={jobMatchResults}
                   existingJobDescription={jobDescription}
-                  generalAnalysisResults={results}
                 />
               </div>
             ) : (
@@ -332,9 +319,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                       {isFreeUserQuotaExceeded ? 'Upgrade to Continue' : 'Unlock Full Analysis'}
                     </button>
                   </div>
-
+                  
                   <p className="text-gray-600 mb-4">
-                    {isFreeUserQuotaExceeded
+                    {isFreeUserQuotaExceeded 
                       ? "You've used your free monthly job analysis. Upgrade to Premium for unlimited job-specific analysis."
                       : "Job-specific analysis is available with Premium. Here's what you're missing:"
                     }
@@ -349,7 +336,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                       </h4>
                       <p className="text-sm text-gray-600">See exactly which keywords from job descriptions match your resume</p>
                     </div>
-
+                    
                     <div className="bg-white rounded-lg p-4 border border-gray-200 opacity-75">
                       <h4 className="font-semibold text-gray-700 mb-2 flex items-center">
                         <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
@@ -363,7 +350,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   <div className="bg-green-600 rounded-lg p-4 text-white text-center">
                     <h4 className="font-bold mb-2">🚀 Unlock Job-Specific Analysis</h4>
                     <p className="text-green-100 text-sm mb-3">
-                      {isFreeUserQuotaExceeded
+                      {isFreeUserQuotaExceeded 
                         ? "Continue analyzing your resume against specific job descriptions with Premium"
                         : "Get personalized insights for every job application with Premium"
                       }
@@ -484,13 +471,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 <div className="bg-gray-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8 text-white" />
                 </div>
-
+                
                 <h3 className="text-xl font-bold text-gray-700 mb-2">
                   Keyword Analysis - {isFreeUserQuotaExceeded ? 'Monthly Limit Reached' : 'Premium Feature'}
                 </h3>
-
+                
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  {isFreeUserQuotaExceeded
+                  {isFreeUserQuotaExceeded 
                     ? "You've used your free monthly keyword analysis. Upgrade to Premium for unlimited access to advanced keyword optimization."
                     : "Unlock advanced keyword analysis to optimize your resume for ATS systems and improve your job search success."
                   }
@@ -514,7 +501,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                     🤖 AI-Powered Improvement Suggestions
                   </h3>
                   <p className="text-gray-700 mb-4">
-                    These suggestions are generated based on current hiring trends, ATS optimization,
+                    These suggestions are generated based on current hiring trends, ATS optimization, 
                     and successful resume patterns in your industry.
                   </p>
                 </div>
@@ -568,13 +555,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 <div className="bg-gray-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8 text-white" />
                 </div>
-
+                
                 <h3 className="text-xl font-bold text-gray-700 mb-2">
                   AI Suggestions - {isFreeUserQuotaExceeded ? 'Monthly Limit Reached' : 'Premium Feature'}
                 </h3>
-
+                
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  {isFreeUserQuotaExceeded
+                  {isFreeUserQuotaExceeded 
                     ? "You've used your free monthly AI suggestions. Upgrade to Premium for unlimited personalized recommendations."
                     : "Get personalized improvement recommendations powered by AI and based on current hiring trends."
                   }
@@ -598,7 +585,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
           onClose={() => setShowUpgradeModal(false)}
           feature="job_matching"
           title={isFreeUserQuotaExceeded ? "Monthly Limit Reached" : "Unlock Premium Features"}
-          description={isFreeUserQuotaExceeded
+          description={isFreeUserQuotaExceeded 
             ? "You've used your free monthly analysis limit. Upgrade to Premium for unlimited access to all features."
             : "Get access to job-specific analysis, keyword optimization, and AI-powered suggestions"
           }
