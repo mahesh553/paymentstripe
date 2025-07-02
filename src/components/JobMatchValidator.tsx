@@ -117,6 +117,7 @@ const [isGenerating, setIsGenerating] = useState(false);
       default: return 'bg-gray-50 text-gray-800 border-gray-200';
     }
   };
+  /* Remove markdown bullet 0702 */
 const renderBulletPoints = (bullets: string[]) => {
   return bullets.map((bullet, index) => (
     <li key={index} className="flex items-start">
