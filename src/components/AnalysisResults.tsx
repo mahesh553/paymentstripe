@@ -14,7 +14,7 @@ interface AnalysisResultsProps {
       No analysis results available. Please run an analysis first.
   
   );
-}
+
 
 }
 
