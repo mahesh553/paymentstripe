@@ -17,7 +17,8 @@ const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [matchResults, setMatchResults] = useState<any>(existingResults || null);
   const [error, setError] = useState<string | null>(null);
-
+const [tailoredBullets, setTailoredBullets] = useState<string[]>([]);
+const [isGenerating, setIsGenerating] = useState(false);
   // Update local state when props change
   useEffect(() => {
     if (existingResults) {
