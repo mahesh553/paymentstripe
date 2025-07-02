@@ -58,6 +58,38 @@ const [isGenerating, setIsGenerating] = useState(false);
     }
   };
 
+  const generateTailoredBullets = async () => {
+  if (!matchResults || !jobDescription) return;
+  
+  setIsGenerating(true);
+  try {
+    const resumeData = sessionStorage.getItem('currentResume');
+    if (!resumeData) throw new Error('No resume found');
+    
+    const resume = JSON.parse(resumeData);
+    const prompt = `Generate 5 tailored bullet points for a resume based on:
+    - Job requirements: ${jobDescription}
+    - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
+    - Missing keywords to include: ${matchResults.missing_skills.join(', ')}
+    
+    Rules:
+    1. Use STAR method (Situation-Task-Action-Result)
+    2. Quantify achievements
+    3. Include 2-3 of these keywords per bullet: ${matchResults.keyword_analysis.missing_keywords.join(', ')}
+    4. Keep under 2 lines each
+    
+    Return ONLY a markdown bullet list. Example:
+    - Improved case resolution time by 30% by implementing Salesforce Service Cloud workflows`;
+
+    const response = await compareWithJobDescription(prompt, ""); // Reuse your existing Gemini service
+    const bullets = response.split('\n').filter(b => b.trim().startsWith('-'));
+    setTailoredBullets(bullets);
+  } catch (error) {
+    setError('Failed to generate bullet points');
+  } finally {
+    setIsGenerating(false);
+  }
+};
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
