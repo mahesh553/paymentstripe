@@ -9,6 +9,14 @@ import { useSubscription } from '../context/SubscriptionContext';
 interface AnalysisResultsProps {
   results: any;
 }
+if (!results) {
+  return (
+    <div className="text-gray-500 p-4">
+      No analysis results available. Please run an analysis first.
+    </div>
+  );
+}
+
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
   const [activeTab, setActiveTab] = useState('job-match');
