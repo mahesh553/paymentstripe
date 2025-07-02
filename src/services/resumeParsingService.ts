@@ -52,7 +52,8 @@ export interface ParsedResume {
 // ResumeParsingService.ts
 // -----------------------------------------------------------------------------
 
-import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for subsections
+import { v4 as uuidv4 } from 'uuid/dist/esm-browser/v4';
+ // For generating unique IDs for subsections
 
 export class ResumeParsingService {
 
