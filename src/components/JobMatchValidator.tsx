@@ -117,7 +117,16 @@ const [isGenerating, setIsGenerating] = useState(false);
       default: return 'bg-gray-50 text-gray-800 border-gray-200';
     }
   };
-
+const renderBulletPoints = (bullets: string[]) => {
+  return bullets.map((bullet, index) => (
+    <li key={index} className="flex items-start">
+      <span className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-2.5 mr-3 flex-shrink-0"></span>
+      <span>
+        {bullet.replace(/^- /, '')} {/* Remove markdown bullet */}
+      </span>
+    </li>
+  ));
+};
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Critical Keywords': return <Star className="w-4 h-4" />;
@@ -424,14 +433,9 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
   {tailoredBullets.length > 0 && (
     <div className="mt-6 bg-white p-4 rounded-lg border border-purple-100">
       <h5 className="font-bold text-purple-800 mb-3">Suggested Bullet Points:</h5>
-      <ul className="space-y-2">
-        {tailoredBullets.map((bullet, index) => (
-          <li key={index} className="flex items-start">
-            <span className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-2.5 mr-3 flex-shrink-0"></span>
-            <span dangerouslySetInnerHTML={{__html: marked(bullet)}} />
-          </li>
-        ))}
-      </ul>
+     <ul className="space-y-2">
+  {renderBulletPoints(tailoredBullets)}
+</ul>
       
       <div className="mt-4 text-sm text-purple-700">
         <Clipboard className="inline mr-2" size={14} />
