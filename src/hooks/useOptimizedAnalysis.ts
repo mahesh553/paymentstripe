@@ -30,7 +30,7 @@ export const useOptimizedAnalysis = () => {
       const result = await analyzeResume(resumeText);
 
       // Store in database cache if we have resumeId
-      if (resumeId && user) {
+      if (resumeId && user && result) {
         DatabaseCacheService.storeAnalysis(resumeId, 'general', result, result.overall_score);
       }
 
