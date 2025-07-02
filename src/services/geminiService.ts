@@ -624,8 +624,3 @@ export const generateRestructureSuggestions = async (resumeText: string, analysi
 
 // Export original functions for backward compatibility
 
-export { analyzeResume as originalAnalyzeResume } from './geminiService';
-
-export { compareWithJobDescription as originalCompareWithJobDescription } from './geminiService';
-
-export { generateRestructureSuggestions as originalGenerateRestructureSuggestions } from './geminiService';
