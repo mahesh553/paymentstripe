@@ -33,6 +33,7 @@ export const useOptimizedAnalysis = () => {
       if (resumeId && user && result) {
         DatabaseCacheService.storeAnalysis(resumeId, 'general', result, result.overall_score);
       }
+console.log('🧪 Analysis result:', result);
 
       setLoading(false);
       return result;
