@@ -1,6 +1,58 @@
-import  { useState, useEffect } from 'react';
-import {  Target, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertCircle, Zap, Star, Lightbulb } from 'lucide-react';
-import { compareWithJobDescription } from '../services/geminiService';
+import { useState, useEffect } from 'react';
+import { Target, TrendingUp, CheckCircle, XCircle, AlertCircle, Zap, Star, Lightbulb, ArrowRight, Search } from 'lucide-react';
+
+// This is a mock function to simulate the API call.
+// In a real application, this would be in a separate service file.
+const compareWithJobDescription = async (resumeText: string, jobDescription: string) => {
+    console.log("Analyzing resume against:", jobDescription.substring(0, 50) + "...");
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Mocked API response structure
+    return {
+        match_score: 78,
+        matching_skills: ["React", "TypeScript", "Tailwind CSS", "State Management"],
+        missing_skills: ["GraphQL", "Next.js", "CI/CD"],
+        recommendations: [
+            {
+                category: "Critical Keywords",
+                suggestion: "The job description mentions 'CI/CD' multiple times. Add a bullet point under your relevant experience detailing your work with tools like Jenkins, GitHub Actions, or CircleCI.",
+                priority: "high"
+            },
+            {
+                category: "Experience Rephrasing",
+                suggestion: "Rephrase 'Worked on a team to build a web app' to 'Collaborated with a team of 5 engineers to develop and launch a customer-facing web application, resulting in a 20% increase in user engagement.' to add quantifiable impact.",
+                priority: "medium"
+            },
+            {
+                category: "Skills Gap",
+                suggestion: "Since 'GraphQL' is a required skill, consider adding a personal project that uses it to your resume or mention that you are currently learning it.",
+                priority: "high"
+            }
+        ],
+        tailoring_suggestions: [
+            {
+                section: "Summary",
+                current: "A software engineer with experience in building web applications.",
+                suggested: "A results-oriented Software Engineer with 3+ years of experience specializing in React, TypeScript, and modern frontend ecosystems, aligning with your need for a developer to enhance your SaaS platform.",
+                reason: "Directly mirrors the language and key requirements from the job description's summary."
+            }
+        ],
+        ats_optimization: {
+            keyword_density: "Your resume has good coverage of core keywords like 'React' and 'TypeScript'. To improve, ensure variations like 'React.js' are also present.",
+            missing_critical_terms: ["SaaS Platform", "CI/CD", "GraphQL"],
+            suggested_additions: [
+                "Incorporate the phrase 'SaaS platform' when describing your project experience.",
+                "Explicitly list 'CI/CD' in your skills section or experience."
+            ]
+        },
+        keyword_analysis: {
+            matched_keywords: ["React", "TypeScript", "State Management", "REST APIs", "Tailwind CSS"],
+            missing_keywords: ["GraphQL", "Next.js", "CI/CD", "SaaS"]
+        }
+    };
+};
+
 
 interface JobMatchValidatorProps {
   onAnalysisComplete: (results: any, jobDescription: string) => void;
@@ -8,10 +60,10 @@ interface JobMatchValidatorProps {
   existingJobDescription?: string;
 }
 
-const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({ 
-  onAnalysisComplete, 
-  existingResults, 
-  existingJobDescription 
+const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({
+  onAnalysisComplete,
+  existingResults,
+  existingJobDescription
 }) => {
   const [jobDescription, setJobDescription] = useState(existingJobDescription || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -38,16 +90,18 @@ const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({
     setError(null);
 
     try {
-      // Get resume text from session storage
-      const resumeData = sessionStorage.getItem('currentResume');
-      if (!resumeData) {
-        throw new Error('No resume data found. Please upload a resume first.');
-      }
+      // In a real app, you'd get resume text. Here we'll use a placeholder.
+      const resumeText = "Placeholder resume text. In a real app, this would come from state or storage.";
+      // const resumeData = sessionStorage.getItem('currentResume');
+      // if (!resumeData) {
+      //   throw new Error('No resume data found. Please upload a resume first.');
+      // }
+      // const resume = JSON.parse(resumeData);
+      // const results = await compareWithJobDescription(resume.text, jobDescription);
 
-      const resume = JSON.parse(resumeData);
-      const results = await compareWithJobDescription(resume.text, jobDescription);
+      const results = await compareWithJobDescription(resumeText, jobDescription);
       setMatchResults(results);
-      
+
       // Notify parent component
       onAnalysisComplete(results, jobDescription);
     } catch (err) {
@@ -61,12 +115,6 @@ const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
-  };
-
-  const getScoreBg = (score: number) => {
-    if (score >= 80) return 'bg-green-50';
-    if (score >= 60) return 'bg-yellow-50';
-    return 'bg-red-50';
   };
 
   const getScoreBar = (score: number) => {
@@ -100,19 +148,19 @@ const JobMatchValidator: React.FC<JobMatchValidatorProps> = ({
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Target className="w-5 h-5 text-green-600 mr-2" />
-          🎯 Job-Specific Analysis (Most Valuable Feature)
+          Job-Specific Analysis
         </h3>
-        
+
         <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
           <p className="text-gray-700 mb-2">
             <strong>This is where generic resume advice becomes personalized strategy.</strong>
           </p>
           <p className="text-sm text-gray-600">
-            Paste any job description below to get specific insights on keyword gaps, 
+            Paste any job description below to get specific insights on keyword gaps,
             rephrasing suggestions, and exact improvements needed for that role.
           </p>
         </div>
-        
+
         <div className="space-y-4">
           <textarea
             value={jobDescription}
@@ -123,14 +171,14 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
             rows={10}
             className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
           />
-          
+
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
               <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
               <p className="text-red-700">{error}</p>
             </div>
           )}
-          
+
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing || !jobDescription.trim()}
@@ -152,8 +200,15 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
       </div>
 
       {/* Match Results */}
-      {matchResults && (
-        <div className="space-y-6">
+      {isAnalyzing && (
+         <div className="flex justify-center items-center p-10 bg-white rounded-xl shadow-lg border border-gray-200">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <p className="ml-4 text-gray-700 font-semibold">Analyzing your resume against the job description...</p>
+         </div>
+      )}
+
+      {!isAnalyzing && matchResults && (
+        <div className="space-y-6 animate-fade-in">
           {/* Overall Match Score */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
@@ -162,14 +217,14 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
                 {matchResults.match_score}%
               </div>
             </div>
-            
+
             <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-              <div 
+              <div
                 className={`h-4 rounded-full transition-all duration-1000 ${getScoreBar(matchResults.match_score)}`}
                 style={{ width: `${matchResults.match_score}%` }}
               ></div>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{matchResults.matching_skills?.length || 0}</div>
@@ -184,12 +239,12 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
                 <div className="text-sm text-gray-600">Action Items</div>
               </div>
             </div>
-            
+
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <p className="text-gray-700 font-medium">
                 {matchResults.match_score >= 80 ? '🎉 Excellent match! Your resume aligns very well with this job. Focus on the high-priority recommendations below to maximize your chances.' :
-                 matchResults.match_score >= 60 ? '👍 Good foundation! You have relevant experience. The recommendations below will significantly improve your job match.' :
-                 '🔧 Opportunity for improvement! Don\'t worry - the specific suggestions below will help you tailor your resume for much better results.'}
+                  matchResults.match_score >= 60 ? '👍 Good foundation! You have relevant experience. The recommendations below will significantly improve your job match.' :
+                    '🔧 Opportunity for improvement! Don\'t worry - the specific suggestions below will help you tailor your resume for much better results.'}
               </p>
             </div>
           </div>
@@ -202,11 +257,10 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
             </h4>
             <div className="space-y-4">
               {matchResults.recommendations?.map((rec: any, index: number) => (
-                <div key={index} className={`border-l-4 pl-4 p-4 rounded-r-lg ${
-                  rec.priority === 'high' ? 'border-red-500 bg-red-50' :
-                  rec.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
-                  'border-green-500 bg-green-50'
-                }`}>
+                <div key={index} className={`border-l-4 pl-4 p-4 rounded-r-lg ${rec.priority === 'high' ? 'border-red-500 bg-red-50' :
+                    rec.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                      'border-green-500 bg-green-50'
+                  }`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
                       {getCategoryIcon(rec.category)}
@@ -228,7 +282,7 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
             <div className="bg-green-50 border border-green-200 rounded-xl p-6">
               <h4 className="text-lg font-semibold text-green-900 mb-4 flex items-center">
                 <CheckCircle className="w-5 h-5 mr-2" />
-                ✅ Skills You Have ({matchResults.matching_skills?.length || 0})
+                Skills You Have ({matchResults.matching_skills?.length || 0})
               </h4>
               <div className="space-y-2">
                 {matchResults.matching_skills?.map((skill: string, index: number) => (
@@ -244,7 +298,7 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
             <div className="bg-red-50 border border-red-200 rounded-xl p-6">
               <h4 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
                 <XCircle className="w-5 h-5 mr-2" />
-                🎯 Skills to Add ({matchResults.missing_skills?.length || 0})
+                Skills to Add ({matchResults.missing_skills?.length || 0})
               </h4>
               <div className="space-y-2">
                 {matchResults.missing_skills?.map((skill: string, index: number) => (
@@ -291,12 +345,15 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
           {/* ATS Optimization */}
           {matchResults.ats_optimization && (
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-              <h4 className="text-xl font-bold text-gray-900 mb-4">🤖 ATS Optimization</h4>
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Zap className="w-5 h-5 text-blue-600 mr-2" />
+                ATS Optimization
+              </h4>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h5 className="font-semibold text-gray-900 mb-2">Keyword Coverage</h5>
                   <p className="text-gray-700 mb-3">{matchResults.ats_optimization.keyword_density}</p>
-                  
+
                   <h5 className="font-semibold text-gray-900 mb-2">Missing Critical Terms</h5>
                   <div className="flex flex-wrap gap-2">
                     {matchResults.ats_optimization.missing_critical_terms?.map((term: string, index: number) => (
@@ -306,7 +363,7 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <h5 className="font-semibold text-gray-900 mb-2">Suggested Additions</h5>
                   <ul className="space-y-2">
@@ -325,7 +382,10 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
           {/* Keyword Analysis */}
           {matchResults.keyword_analysis && (
             <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-              <h4 className="text-xl font-bold text-gray-900 mb-4">🔍 Keyword Analysis</h4>
+              <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Search className="w-5 h-5 text-blue-600 mr-2" />
+                Keyword Analysis
+              </h4>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h5 className="font-medium text-green-800 mb-3 flex items-center">
@@ -361,33 +421,36 @@ Example: 'We are looking for a Senior Software Engineer with 5+ years of experie
 
       {/* Tips */}
       <div className="bg-green-50 rounded-xl p-6 border border-green-200">
-        <h4 className="text-lg font-semibold text-green-900 mb-3">💡 Pro Tips for Job Matching</h4>
-        <div className="grid md:grid-cols-2 gap-4">
+        <h4 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
+            <Lightbulb className="w-5 h-5 text-yellow-500 mr-2" />
+            Pro Tips for Job Matching
+        </h4>
+        <div className="grid md:grid-cols-2 gap-4 text-sm">
           <ul className="space-y-2 text-green-800">
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Copy exact phrases</strong> from job descriptions when they match your experience</span>
             </li>
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Use the same keywords</strong> the company uses, not synonyms</span>
             </li>
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Quantify everything</strong> - numbers catch both ATS and human attention</span>
             </li>
           </ul>
           <ul className="space-y-2 text-green-800">
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Address skill gaps honestly</strong> - mention learning or basic experience</span>
             </li>
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Reorder sections</strong> to highlight most relevant experience first</span>
             </li>
             <li className="flex items-start">
-              <span className="w-2 h-2 bg-green-600 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <span className="w-2 h-2 bg-green-600 rounded-full mt-1.5 mr-3 flex-shrink-0"></span>
               <span><strong>Create job-specific versions</strong> of your resume for different roles</span>
             </li>
           </ul>
