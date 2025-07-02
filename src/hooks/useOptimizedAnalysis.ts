@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { analyzeResume, compareWithJobDescription, generateRestructureSuggestions } from '../services/optimizedGeminiService';
 import { DatabaseCacheService } from '../services/databaseCacheService';
-import { useAuth } from '../context/Auth/AuthContext'; // Assuming this is the correct path to your AuthContext
+import { useAuth } from '../context/AuthContext'; // Assuming this is the correct path to your AuthContext
 
 export const useOptimizedAnalysis = () => {
   const [loading, setLoading] = useState(false);
