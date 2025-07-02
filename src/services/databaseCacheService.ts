@@ -64,6 +64,7 @@ export class DatabaseCacheService {
    * @returns The stored analysis record or null on error.
    */
   static async storeAnalysis(resumeId: string, analysisType: string, results: any, score?: number): Promise<AnalysisResult | null> {
+    console.log(`[DatabaseCacheService] Attempting to store analysis for resumeId: ${resumeId}, type: ${analysisType}`);
     try {
       const { data, error } = await supabase
         .from('analyses')
@@ -72,20 +73,21 @@ export class DatabaseCacheService {
           analysis_type: analysisType,
           results, // Make sure 'results' maps to a JSONB column in your DB
           score,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString() // Crucial: ensure created_at is current
         }, {
           onConflict: 'resume_id,analysis_type' // Conflict on this unique pair
         })
         .select(); // Request the inserted/updated data back
 
       if (error) {
-        console.error('Error storing analysis:', error);
+        console.error('[DatabaseCacheService Error] Error storing analysis:', error.message);
         return null;
       }
 
+      console.log('[DatabaseCacheService] Analysis successfully stored/updated for resumeId:', resumeId);
       return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-      console.error('Error in storeAnalysis:', error);
+    } catch (error: any) {
+      console.error('[DatabaseCacheService Error] Unexpected error in storeAnalysis:', error.message);
       return null;
     }
   }
@@ -98,6 +100,7 @@ export class DatabaseCacheService {
    * @returns The cached analysis results or null if not found, too old, or an error occurred.
    */
   static async getCachedAnalysis(resumeId: string, analysisType: string = 'general'): Promise<any | null> {
+    console.log(`[DatabaseCacheService] Attempting to get cached analysis for resumeId: ${resumeId}, type: ${analysisType}`);
     try {
       const { data, error } = await supabase
         .from('analyses')
@@ -108,28 +111,31 @@ export class DatabaseCacheService {
         .limit(1);
 
       if (error) {
-        console.error('Error getting cached analysis:', error);
+        console.error('[DatabaseCacheService Error] Error getting cached analysis:', error.message);
         return null;
       }
 
       if (!data || data.length === 0) {
+        console.log(`[DatabaseCacheService] No analysis found in DB for resumeId: ${resumeId}, type: ${analysisType}`);
         return null; // No analysis found
       }
 
       const analysisData: AnalysisResult = data[0];
+      console.log(`[DatabaseCacheService] Found potential cached entry for resumeId: ${resumeId}. Created at: ${analysisData.created_at}`);
 
       // Check if analysis is recent (within 7 days)
       const analysisDate = new Date(analysisData.created_at);
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         
       if (analysisDate < weekAgo) {
-        console.log(`Cached analysis for ${resumeId} (${analysisType}) found but is too old.`);
+        console.log(`[DatabaseCacheService] Cached analysis for ${resumeId} (${analysisType}) found but is TOO OLD. Created at: ${analysisData.created_at}`);
         return null; // Analysis is too old
       }
 
+      console.log(`[DatabaseCacheService] Returning VALID cached analysis for resumeId: ${resumeId}`);
       return analysisData.results;
-    } catch (error) {
-      console.error('Error in getCachedAnalysis:', error);
+    } catch (error: any) {
+      console.error('[DatabaseCacheService Error] Unexpected error in getCachedAnalysis:', error.message);
       return null;
     }
   }
@@ -147,6 +153,7 @@ export class DatabaseCacheService {
     const jobDescriptionTruncated = jobDescription.substring(0, 5000); // Limit length for DB column
     const jobDescriptionHash = await this.generateSha256Hash(jobDescription); // Generate hash for robust matching
 
+    console.log(`[DatabaseCacheService] Attempting to store job match for resumeId: ${resumeId}, hash: ${jobDescriptionHash}`);
     try {
       // Attempt to UPSERT first using the hash for unique conflict resolution
       const { data, error } = await supabase
@@ -187,19 +194,21 @@ export class DatabaseCacheService {
             .select();
           
           if (insertError) {
-            console.error('Error storing job match via fallback INSERT:', insertError);
+            console.error('[DatabaseCacheService Error] Failed to store job match via fallback INSERT:', insertError.message);
             return null;
           }
+          console.log('[DatabaseCacheService] Job match successfully stored via fallback INSERT.');
           return Array.isArray(insertData) ? insertData[0] : insertData;
         } else {
-          console.error('Error storing job match:', error);
+          console.error('[DatabaseCacheService Error] Error storing job match:', error.message);
           return null;
         }
       }
 
+      console.log('[DatabaseCacheService] Job match successfully stored/updated.');
       return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-      console.error('Error in storeJobMatch:', error);
+    } catch (error: any) {
+      console.error('[DatabaseCacheService Error] Unexpected error in storeJobMatch:', error.message);
       return null;
     }
   }
@@ -213,6 +222,7 @@ export class DatabaseCacheService {
    */
   static async getCachedJobMatch(resumeId: string, jobDescription: string): Promise<any | null> {
     const targetJobDescriptionHash = await this.generateSha256Hash(jobDescription);
+    console.log(`[DatabaseCacheService] Attempting to get cached job match for resumeId: ${resumeId}, target hash: ${targetJobDescriptionHash}`);
 
     try {
       // 1. Attempt to find an exact match by hash first (most reliable)
@@ -225,7 +235,7 @@ export class DatabaseCacheService {
         .limit(1);
 
       if (exactMatchError) {
-        console.error('Error querying for exact job match:', exactMatchError);
+        console.error('[DatabaseCacheService Error] Error querying for exact job match by hash:', exactMatchError.message);
         // Do not return null yet, proceed to heuristic check potentially if hash query failed for non-schema reasons
       } else if (exactMatchData && exactMatchData.length > 0) {
         const exactMatch = exactMatchData[0] as JobMatchResult;
@@ -233,17 +243,20 @@ export class DatabaseCacheService {
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         
         if (matchDate >= dayAgo) {
-          console.log(`Exact cached job match for resume ${resumeId} found by hash and is recent.`);
+          console.log(`[DatabaseCacheService] Exact cached job match for resume ${resumeId} found by hash and is recent.`);
           return exactMatch.recommendations;
         } else {
-          console.log(`Exact cached job match for resume ${resumeId} found by hash but is too old.`);
+          console.log(`[DatabaseCacheService] Exact cached job match for resume ${resumeId} found by hash but is too old. Created at: ${exactMatch.created_at}`);
           // Exact match found but expired, might proceed to heuristic or force new analysis
           // For now, will continue to heuristic part or return null if no heuristic applies.
         }
+      } else {
+        console.log(`[DatabaseCacheService] No exact hash match found for resumeId: ${resumeId}.`);
       }
 
       // 2. Fallback to heuristic similarity check if no recent exact hash match found
       // This covers cases where 'job_description_hash' might not be populated or exact hash is old.
+      console.log(`[DatabaseCacheService] Falling back to heuristic check for resumeId: ${resumeId}.`);
       const { data: recentMatches, error: recentMatchesError } = await supabase
         .from('job_matches')
         .select('*')
@@ -252,11 +265,12 @@ export class DatabaseCacheService {
         .limit(10); // Get up to 10 recent matches for heuristic comparison
 
       if (recentMatchesError) {
-        console.error('Error getting recent job matches for heuristic check:', recentMatchesError);
+        console.error('[DatabaseCacheService Error] Error getting recent job matches for heuristic check:', recentMatchesError.message);
         return null;
       }
 
       if (!recentMatches || recentMatches.length === 0) {
+        console.log(`[DatabaseCacheService] No recent matches found for heuristic check for resumeId: ${resumeId}.`);
         return null; // No recent matches for this resume
       }
 
@@ -267,6 +281,7 @@ export class DatabaseCacheService {
         // Skip if this match was an exact hash match we already checked (and potentially discarded for being old)
         // This prevents redundant heuristic check on the same exact match if it was found but too old.
         if (match.job_description_hash === targetJobDescriptionHash) {
+          console.log(`[DatabaseCacheService] Skipping heuristic check for exact hash match already processed.`);
           continue; 
         }
 
@@ -285,18 +300,19 @@ export class DatabaseCacheService {
             const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             
             if (analysisDate >= dayAgo) {
-              console.log(`Heuristic cached job match for resume ${resumeId} found and is recent.`);
+              console.log(`[DatabaseCacheService] Heuristic cached job match for resume ${resumeId} found and is recent.`);
               return match.recommendations;
             } else {
-              console.log(`Heuristic cached job match for resume ${resumeId} found but is too old.`);
+              console.log(`[DatabaseCacheService] Heuristic cached job match for resume ${resumeId} found but is too old. Created at: ${match.created_at}`);
             }
           }
         }
       }
 
+      console.log(`[DatabaseCacheService] No recent, valid job match found by either hash or heuristic for resumeId: ${resumeId}.`);
       return null; // No recent, valid match found by either hash or heuristic
-    } catch (error) {
-      console.error('Error in getCachedJobMatch:', error);
+    } catch (error: any) {
+      console.error('[DatabaseCacheService Error] Unexpected error in getCachedJobMatch:', error.message);
       return null;
     }
   }
@@ -309,7 +325,7 @@ export class DatabaseCacheService {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      console.log('🧹 Starting cleanup of old cache entries...');
+      console.log('[DatabaseCacheService] 🧹 Starting cleanup of old cache entries...');
 
       // Clean old analyses
       const { error: analysesError } = await supabase
@@ -318,9 +334,9 @@ export class DatabaseCacheService {
         .lt('created_at', thirtyDaysAgo);
 
       if (analysesError) {
-        console.error('Error cleaning up old analyses:', analysesError);
+        console.error('[DatabaseCacheService Error] Error cleaning up old analyses:', analysesError.message);
       } else {
-        console.log('✅ Old analyses cleaned up.');
+        console.log('[DatabaseCacheService] ✅ Old analyses cleaned up.');
       }
 
       // Clean old job matches
@@ -330,13 +346,13 @@ export class DatabaseCacheService {
         .lt('created_at', thirtyDaysAgo);
 
       if (jobMatchesError) {
-        console.error('Error cleaning up old job matches:', jobMatchesError);
+        console.error('[DatabaseCacheService Error] Error cleaning up old job matches:', jobMatchesError.message);
       } else {
-        console.log('✅ Old job matches cleaned up.');
+        console.log('[DatabaseCacheService] ✅ Old job matches cleaned up.');
       }
       
-    } catch (error) {
-      console.error('Error in cleanupOldEntries:', error);
+    } catch (error: any) {
+      console.error('[DatabaseCacheService Error] Unexpected error in cleanupOldEntries:', error.message);
     }
   }
 }
@@ -349,7 +365,7 @@ let lastCleanup = parseInt(localStorage.getItem('lastCacheCleanup') || '0', 10);
 
 // Check if cleanup needs to run on application load
 if (Date.now() - lastCleanup > CLEANUP_INTERVAL) {
-  console.log('Initiating daily cache cleanup...');
+  console.log('[DatabaseCacheService] Initiating daily cache cleanup...');
   DatabaseCacheService.cleanupOldEntries();
   localStorage.setItem('lastCacheCleanup', Date.now().toString());
 }
@@ -357,5 +373,5 @@ if (Date.now() - lastCleanup > CLEANUP_INTERVAL) {
 // Optionally, you could set up a setInterval for cleanup if the app runs for very long periods
 // but for most web apps, the on-load check combined with DB-side TTLs is sufficient.
 // setInterval(() => {
-//   DatabaseCacheService.cleanupOldEntries();
+//    DatabaseCacheService.cleanupOldEntries();
 // }, CLEANUP_INTERVAL);
