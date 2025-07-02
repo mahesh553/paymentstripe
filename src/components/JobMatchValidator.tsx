@@ -2,7 +2,7 @@ import  { useState, useEffect } from 'react';
 import {  Target, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertCircle, Zap, Star, Lightbulb, ArrowRight, Search } from 'lucide-react';
 import { compareWithJobDescription } from '../services/geminiService';
 import { Sparkles, Clipboard, Loader2 } from 'lucide-react';
-import { marked } from 'marked';
+
 interface JobMatchValidatorProps {
   onAnalysisComplete: (results: any, jobDescription: string) => void;
   existingResults?: any;
