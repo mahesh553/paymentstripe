@@ -8,14 +8,7 @@ import { useSubscription } from '../context/SubscriptionContext';
 
 interface AnalysisResultsProps {
   results: any;
-  if (!results) {
-  return (
-    <div className="text-gray-500 p-4">
-      No analysis results available. Please run an analysis first.
   
-  );
-
-
 }
 
 
