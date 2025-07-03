@@ -344,6 +344,7 @@ export const compareWithJobDescription = async (resumeText: string, jobDescripti
 
   // Check cache first
 console.log('jobDescription',jobDescription);
+  console.log('resumeText',resumeText);
   const cached = cacheService.getCachedJobMatch(resumeText, jobDescription);
 
   if (cached) {
