@@ -290,13 +290,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
             canUseJobMatching ? (
               <div className="space-y-6">
                 <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
-                  <p className="text-gray-700 mb-2">
-                    <strong>This is where generic resume advice becomes personalized strategy.</strong>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Paste any job description below to get specific insights on keyword gaps, 
-                    rephrasing suggestions, and exact improvements needed for that role.
-                  </p>
+                  
                 </div>
                 <JobMatchValidator 
                   onAnalysisComplete={handleJobMatchComplete}
