@@ -74,7 +74,7 @@ const [isGenerating, setIsGenerating] = useState(false);
 
       const resume = JSON.parse(resumeData);
           const missingKeywords = matchResults.keyword_analysis?.missing_keywords || [];
-
+console.log('Job Description--:', jobDescription);
       console.log('Missing Keywords:', missingKeywords);
      console.log('Matching Skills:', matchResults.matching_skills || []);
    
