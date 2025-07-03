@@ -426,33 +426,33 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
               </div>
             </div>
           )}
-
-          {activeTab === 'sections' && (
-            <div className="space-y-6">
-              {Object.entries(results.sections || {}).map(([sectionName, section]: [string, any]) => (
-                <div key={sectionName} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
+{activeTab === 'sections' && (
+    <div className="space-y-6">
+        {Object.entries(results.sections || {}).map(([sectionName, section]: [string, any]) => (
+            <div key={sectionName} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                      {sectionName.replace('_', ' ')}
+                        {sectionName.replace('_', ' ')}
                     </h3>
                     <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${getScoreBgColor(section.score)} ${getScoreColor(section.score)} border ${
-                        section.score >= 80 ? 'border-green-200' :
-                        section.score >= 60 ? 'border-yellow-200' : 'border-red-200'
-                      }`}>
-                        {section.score}/100
-                      </span>
-                      {section.present ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-600" />
-                      )}
+                        <span className={`px-2 py-1 rounded text-sm font-medium ${getScoreBgColor(section.score)} ${getScoreColor(section.score)} border ${
+                            section.score >= 80 ? 'border-green-200' :
+                            section.score >= 60 ? 'border-yellow-200' : 'border-red-200'
+                        }`}>
+                            {section.score}/100
+                        </span>
+                        {section.present ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                        )}
                     </div>
-                  </div>
-                  <p className="text-gray-700 mb-3">{section.feedback}</p>
-                  {section.suggestions && section.suggestions.length > 0 && (
-                    <div>
-                                     {section.suggestions && Array.isArray(section.suggestions) && section.suggestions.length > 0 && (
+                </div>
+                <p className="text-gray-700 mb-3">{section.feedback}</p>
+
+                {/* --- THIS IS THE CORRECTED BLOCK --- */}
+                {/* This block renders the suggestions if they are a valid non-empty array */}
+                {section.suggestions && Array.isArray(section.suggestions) && section.suggestions.length > 0 && (
                     <div>
                         <h4 className="font-medium text-gray-900 mb-2">Actionable Suggestions:</h4>
                         <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
@@ -467,15 +467,12 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                 {section.suggestions && !Array.isArray(section.suggestions) && (
                     <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>
                 )}
+                {/* --- END OF CORRECTED BLOCK --- */}
 
-                {/* No explicit block needed if section.suggestions is null/undefined or an empty array,
-                    as the above conditions correctly handle those cases (nothing will render). */}
             </div>
         ))}
-              )}
-            </div>
-          )}
-
+    </div>
+)}
           {activeTab === 'keywords' && (
             canUseKeywordAnalysis ? (
               <KeywordHighlighter keywords={results.keywords || []} />
