@@ -472,7 +472,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                     as the above conditions correctly handle those cases (nothing will render). */}
             </div>
         ))}
-              ))}
+              )}
             </div>
           )}
 
