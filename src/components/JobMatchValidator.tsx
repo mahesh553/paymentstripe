@@ -74,11 +74,11 @@ const [isGenerating, setIsGenerating] = useState(false);
 
       const resume = JSON.parse(resumeData);
           const missingKeywords = matchResults.keyword_analysis?.missing_keywords || [];
-console.log('Job Description--:',
+
     const jd=jobDescription.substring(0, 300));
       console.log('Missing Keywords:', missingKeywords);
      console.log('Matching Skills:', matchResults.matching_skills || []);
-   
+   console.log('Job Description--:',jd);
       const prompt = `Generate 5 tailored bullet points for a resume based on:
          - Job requirements: ${jd}
       - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
