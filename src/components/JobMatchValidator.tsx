@@ -73,6 +73,7 @@ const [isGenerating, setIsGenerating] = useState(false);
       if (!resumeData) throw new Error('No resume found');
 
       const resume = JSON.parse(resumeData);
+      console.log('Missing Keywords:', matchResults.keyword_analysis?.missing_keywords || []);
       const prompt = `Generate 5 tailored bullet points for a resume based on:
       - Job requirements: ${jobDescription}
       - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
