@@ -77,9 +77,9 @@ const [isGenerating, setIsGenerating] = useState(false);
 
       console.log('Missing Keywords:', missingKeywords);
      console.log('Matching Skills:', matchResults.matching_skills || []);
-    console.log('Job Description:', jobDescription);
+   
       const prompt = `Generate 5 tailored bullet points for a resume based on:
-      - Job requirements: ${jobDescription}
+     
       - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
       - Missing keywords to include: ${missingKeywords.join(', ')}
       Rules:
