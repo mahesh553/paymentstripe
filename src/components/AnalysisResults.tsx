@@ -454,11 +454,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Actionable Suggestions:</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-              const suggestions = Array.isArray(section.suggestions)
-  ? section.suggestions
-  : typeof section.suggestions === 'string'
-    ? [section.suggestions]
-    : [];
+              
           {section.suggestions.map((suggestion: string, index: number) => (
                           <li key={index}>{suggestion}</li>
                         ))}
