@@ -289,9 +289,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
           {activeTab === 'job-match' && (
             canUseJobMatching ? (
               <div className="space-y-6">
-                <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
-                  
-                </div>
+               
                 <JobMatchValidator 
                   onAnalysisComplete={handleJobMatchComplete}
                   existingResults={jobMatchResults}
