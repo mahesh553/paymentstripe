@@ -452,21 +452,26 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   <p className="text-gray-700 mb-3">{section.feedback}</p>
                   {section.suggestions && section.suggestions.length > 0 && (
                     <div>
-                                      {section.suggestions && Array.isArray(section.suggestions) && section.suggestions.length > 0 && (
-
-                      <h4 className="font-medium text-gray-900 mb-2">Actionable Suggestions:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-              
-          {section.suggestions.map((suggestion: string, index: number) => (
-                          <li key={index}>{suggestion}</li>
-                        ))}
-                      </ul>
+                                     {section.suggestions && Array.isArray(section.suggestions) && section.suggestions.length > 0 && (
+                    <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Actionable Suggestions:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                            {section.suggestions.map((suggestion: string, index: number) => (
+                                <li key={index}>{suggestion}</li>
+                            ))}
+                        </ul>
                     </div>
-             {section.suggestions && !Array.isArray(section.suggestions) && (
-                    <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>)}
-               
                 )}
-                </div>
+
+                {/* This block renders an error message if suggestions exist but are NOT an array */}
+                {section.suggestions && !Array.isArray(section.suggestions) && (
+                    <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>
+                )}
+
+                {/* No explicit block needed if section.suggestions is null/undefined or an empty array,
+                    as the above conditions correctly handle those cases (nothing will render). */}
+            </div>
+        ))}
               ))}
             </div>
           )}
