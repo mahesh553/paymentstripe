@@ -463,7 +463,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                       </ul>
                     </div>
              {section.suggestions && !Array.isArray(section.suggestions) && (
-                    <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>
+                    <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>)}
                
                 )}
                 </div>
