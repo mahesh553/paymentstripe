@@ -73,7 +73,11 @@ const [isGenerating, setIsGenerating] = useState(false);
       if (!resumeData) throw new Error('No resume found');
 
       const resume = JSON.parse(resumeData);
-      console.log('Missing Keywords:', matchResults.keyword_analysis?.missing_keywords || []);
+          const missingKeywords = matchResults.keyword_analysis?.missing_keywords || [];
+
+      console.log('Missing Keywords:', missingKeywords);
+     console.log('Matching Skills:', matchResults.matching_skills || []);
+    console.log('Job Description:', jobDescription);
       const prompt = `Generate 5 tailored bullet points for a resume based on:
       - Job requirements: ${jobDescription}
       - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
@@ -81,7 +85,7 @@ const [isGenerating, setIsGenerating] = useState(false);
       Rules:
       1. Use STAR method (Situation-Task-Action-Result)
       2. Quantify achievements
-      3. Include 2-3 of these keywords per bullet: ${matchResults.keyword_analysis.missing_keywords.join(', ')}
+      3. Include 2-3 of these keywords per bullet: ${missingKeywords.join(', ')}
       4. Keep under 2 lines each
       Return ONLY a markdown bullet list. Example:
       - Improved case resolution time by 30% by implementing Salesforce Service Cloud workflows`;
