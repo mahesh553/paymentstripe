@@ -286,7 +286,7 @@ export const analyzeResume = async (resumeText: string) => {
 
 
 
-    const prompt = ANALYSIS_PROMPT_TEMPLATE.replace('{RESUME_TEXT}', resumeText.substring(0, 8000)); // Limit input length
+    const prompt = ANALYSIS_PROMPT_TEMPLATE.replace('{RESUME_TEXT}', resumeText.substring(0, 5000)); // Limit input length
 
 
 
