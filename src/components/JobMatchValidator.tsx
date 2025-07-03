@@ -76,7 +76,7 @@ const [isGenerating, setIsGenerating] = useState(false);
       const prompt = `Generate 5 tailored bullet points for a resume based on:
       - Job requirements: ${jobDescription}
       - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
-      - Missing keywords to include: ${matchResults.missing_skills.join(', ')}
+      - Missing keywords to include: ${missingKeywords.join(', ')}
       Rules:
       1. Use STAR method (Situation-Task-Action-Result)
       2. Quantify achievements
