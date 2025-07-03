@@ -61,35 +61,49 @@ const [isGenerating, setIsGenerating] = useState(false);
 
   const generateTailoredBullets = async () => {
   if (!matchResults || !jobDescription) return;
-  
-  setIsGenerating(true);
-  try {
-    const resumeData = sessionStorage.getItem('currentResume');
-    if (!resumeData) throw new Error('No resume found');
-    
-    const resume = JSON.parse(resumeData);
-    const prompt = `Generate 5 tailored bullet points for a resume based on:
-    - Job requirements: ${jobDescription}
-    - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
-    - Missing keywords to include: ${matchResults.missing_skills.join(', ')}
-    
-    Rules:
-    1. Use STAR method (Situation-Task-Action-Result)
-    2. Quantify achievements
-    3. Include 2-3 of these keywords per bullet: ${matchResults.keyword_analysis.missing_keywords.join(', ')}
-    4. Keep under 2 lines each
-    
-    Return ONLY a markdown bullet list. Example:
-    - Improved case resolution time by 30% by implementing Salesforce Service Cloud workflows`;
 
-    const response = await compareWithJobDescription(prompt, ""); // Reuse your existing Gemini service
-    const bullets = response.split('\n').filter(b => b.trim().startsWith('-'));
-    setTailoredBullets(bullets);
-  } catch (error) {
-    setError('Failed to generate bullet points');
-  } finally {
-    setIsGenerating(false);
+  setIsGenerating(true);
+  const maxRetries = 3;
+  let retryCount = 0;
+  const retryDelay = 2000; // Start with 2 seconds
+
+  while (retryCount < maxRetries) {
+    try {
+      const resumeData = sessionStorage.getItem('currentResume');
+      if (!resumeData) throw new Error('No resume found');
+
+      const resume = JSON.parse(resumeData);
+      const prompt = `Generate 5 tailored bullet points for a resume based on:
+      - Job requirements: ${jobDescription}
+      - Candidate's existing skills: ${matchResults.matching_skills.join(', ')}
+      - Missing keywords to include: ${matchResults.missing_skills.join(', ')}
+      Rules:
+      1. Use STAR method (Situation-Task-Action-Result)
+      2. Quantify achievements
+      3. Include 2-3 of these keywords per bullet: ${matchResults.keyword_analysis.missing_keywords.join(', ')}
+      4. Keep under 2 lines each
+      Return ONLY a markdown bullet list. Example:
+      - Improved case resolution time by 30% by implementing Salesforce Service Cloud workflows`;
+
+      const response = await compareWithJobDescription(prompt, "");
+      const bullets = response.split('\n').filter(b => b.trim().startsWith('-'));
+      setTailoredBullets(bullets);
+      break; // Exit loop on success
+    } catch (error) {
+      if (error.message.includes('503') && retryCount < maxRetries - 1) {
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, retryCount))); // Exponential backoff
+        continue;
+      }
+      setError('Failed to generate bullet points: ' + error.message);
+      break;
+    } finally {
+      if (retryCount >= maxRetries) {
+        setIsGenerating(false);
+      }
+    }
   }
+  setIsGenerating(false);
 };
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
