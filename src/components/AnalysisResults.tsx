@@ -452,6 +452,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                   <p className="text-gray-700 mb-3">{section.feedback}</p>
                   {section.suggestions && section.suggestions.length > 0 && (
                     <div>
+                                      {section.suggestions && Array.isArray(section.suggestions) && section.suggestions.length > 0 && (
+
                       <h4 className="font-medium text-gray-900 mb-2">Actionable Suggestions:</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
               
@@ -460,7 +462,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results }) => {
                         ))}
                       </ul>
                     </div>
-                  )}
+             {section.suggestions && !Array.isArray(section.suggestions) && (
+                    <p className="text-red-500 text-sm mt-2">Error: Suggestions data for this section is malformed.</p>
+               
+                )}
                 </div>
               ))}
             </div>
